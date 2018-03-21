@@ -1,0 +1,12 @@
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\bin\Debug\Analysis.exe
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\bin\Debug\Analysis.pdb
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\obj\Debug\ResolveAssemblyReference.cache
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\obj\Debug\Analysis.FormTrace.resources
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\obj\Debug\Analysis.Properties.Resources.resources
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\obj\Debug\Analysis.csproj.GenerateResource.Cache
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\obj\Debug\Analysis.exe
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\obj\Debug\Analysis.pdb
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\bin\Debug\Newtonsoft.Json.dll
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\bin\Debug\Newtonsoft.Json.pdb
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\bin\Debug\Newtonsoft.Json.xml
+Z:\Users\Geoff\Documents\Visual Studio 2005\Projects\ScienceFeedback\Analysis\obj\Debug\Analysis.FormChannelSelector.resources
