@@ -518,6 +518,18 @@ namespace Analysis
         #endregion serialization
 
         #region accessors
+        public double SamplesPerSecondMax
+        {
+            get
+            {
+                double rate = double.MinValue;
+                for (int i = 0; i < m_sampleRates.Length; i++)
+                {
+                    rate = Math.Max(rate, m_sampleRates[i]);
+                }
+                return rate;
+            }
+        }
         public int[][] ReadRecord(double startTime, double endTime, out int[] offset, out int[] count)
         {
             double duration = endTime - startTime;

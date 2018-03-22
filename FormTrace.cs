@@ -22,16 +22,21 @@ namespace Analysis
         int m_picWidthMargin = -1;
         int m_picHeightMargin = -1;
 
+        bool m_isPictureboxSelecting = false;
+        int[] m_selections;
 
         string m_lastFile = "";
         public FormTrace()
         {
-
+            //form events
             FormClosing += new FormClosingEventHandler(FormTrace_FormClosing);
             Resize += new EventHandler(FormTrace_Resize);
             MouseWheel += new MouseEventHandler(FormTrace_MouseWheel);
+
+            //component events
             InitializeComponent();
             hScrollBarWindow.ValueChanged += new EventHandler(hScrollBarWindow_ValueChanged);
+            pictureBoxEeg.MouseDown += new MouseEventHandler(pictureBoxEeg_MouseDown);
 
             pictureBoxEeg.Width = m_picWidth;
             pictureBoxEeg.Height = m_picHeight;
@@ -39,6 +44,11 @@ namespace Analysis
             m_picWidthMargin = this.Width - m_picWidth;
             setDefaults();
             loadSettings();
+        }
+
+        void pictureBoxEeg_MouseDown(object sender, MouseEventArgs e)
+        {
+            throw new Exception("The method or operation is not implemented.");
         }
 
         void hScrollBarWindow_ValueChanged(object sender, EventArgs e)
@@ -110,13 +120,11 @@ namespace Analysis
         {
             if (filename != null && filename.Length > 1)
             {
-                if (filename.ToLower().EndsWith(".edf"))
+                if (filename.ToLower().EndsWith(".edf") || filename.ToLower().EndsWith(".bdf"))
                 {
                     m_file = EDFfile.OpenFile(filename);
-                }
-                else if (filename.ToLower().EndsWith(".bdf"))
-                {
-                    m_file = EDFfile.OpenFile(filename);
+                    int selectorCount = (int)(m_file.m_header.Duration.TotalSeconds * m_file.SamplesPerSecondMax);
+                    m_selections = new int[selectorCount];
                 }
                 else
                 {
