@@ -31,9 +31,18 @@ namespace Analysis
                 cb.Text = m_channelLabels[i];
                 cb.Checked = true;
                 cb.SetBounds(x, y, cb.Width, cb.Height);
+                cb.CheckedChanged += Cb_CheckedChanged;
                 this.Controls.Add(cb);
                 y += cb.Height + 5;
             }
+        }
+
+        private void Cb_CheckedChanged(object sender, EventArgs e)
+        {
+            //todo: left off here.
+            //set parent display value
+            //redraw eeg
+
         }
     }
 }

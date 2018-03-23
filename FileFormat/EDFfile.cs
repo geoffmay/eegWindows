@@ -530,6 +530,21 @@ namespace Analysis
                 return rate;
             }
         }
+        public double[][] ReadData(double startTime, double endTime)
+        {
+            int[] offset, count;
+            int[][] digitalData = ReadRecord(startTime, endTime, out offset, out count);
+            double[][] physicalData = new double[digitalData.Length][];
+            for (int i = 0; i < digitalData.Length; i++)
+            {
+                physicalData[i] = new double[digitalData[i].Length];
+                for (int j = 0; j < digitalData[i].Length; j++)
+                {
+                    physicalData[i][j] = convertDigitalToPhysical(digitalData[i][j], i);
+                }
+            }
+            return physicalData;
+        }
         public int[][] ReadRecord(double startTime, double endTime, out int[] offset, out int[] count)
         {
             double duration = endTime - startTime;
@@ -1044,9 +1059,9 @@ namespace Analysis
         {
             string label, transducerType, dimensionUnit, prefilter, reserved;
             double pmin, pmax, dmin, dmax, samplesPerSecond;
-            m_header.GetSignalParameters(channelNumber, out label, out  transducerType, out  dimensionUnit,
-                out  pmin, out  pmax, out  dmin, out  dmax, out  prefilter, out  samplesPerSecond,
-                out  reserved);
+            m_header.GetSignalParameters(channelNumber, out label, out transducerType, out dimensionUnit,
+                out pmin, out pmax, out dmin, out dmax, out prefilter, out samplesPerSecond,
+                out reserved);
             return label;
         }
         public double FramesPerSecond()
@@ -1054,9 +1069,9 @@ namespace Analysis
             int channelNumber = 0;
             string label, transducerType, dimensionUnit, prefilter, reserved;
             double pmin, pmax, dmin, dmax, samplesPerSecond;
-            m_header.GetSignalParameters(channelNumber, out label, out  transducerType, out  dimensionUnit,
-                out  pmin, out  pmax, out  dmin, out  dmax, out  prefilter, out  samplesPerSecond,
-                out  reserved);
+            m_header.GetSignalParameters(channelNumber, out label, out transducerType, out dimensionUnit,
+                out pmin, out pmax, out dmin, out dmax, out prefilter, out samplesPerSecond,
+                out reserved);
             return samplesPerSecond;
         }
         public long FramesInRecording()
@@ -1141,7 +1156,6 @@ namespace Analysis
         #endregion annotations
 
         #region drawing
-
         public Bitmap GenerateBitmap(int picWidth, int picHeight, bool DrawGrid, double startTime, double endTime, double gain, bool[] display)
         {
             if (picWidth < 1) { picWidth = 1; }
@@ -1149,21 +1163,23 @@ namespace Analysis
             Bitmap retBmp = new Bitmap(picWidth, picHeight);
             Graphics g = Graphics.FromImage(retBmp);
             g.FillRectangle((Brushes.White), 0, 0, picWidth, picHeight);
-            return DrawSignal(retBmp, DrawGrid, startTime, endTime, gain, display);
+            return DrawEeg(retBmp, DrawGrid, startTime, endTime, gain, display);
         }
-        public Bitmap DrawSignal(Bitmap picToModify, bool DrawGrid, double startTime, double endTime)
+        public Bitmap DrawEeg(Bitmap picToModify, bool DrawGrid, double startTime, double endTime)
         {
-            return DrawSignal(picToModify, DrawGrid, startTime, endTime, 0);
+            return DrawEeg(picToModify, DrawGrid, startTime, endTime, 0);
         }
-        public Bitmap DrawSignal(Bitmap picToModify, bool DrawGrid, double startTime, double endTime, double gain)
+        public Bitmap DrawEeg(Bitmap picToModify, bool DrawGrid, double startTime, double endTime, double gain)
         {
             bool[] display = new bool[m_header.NumberOfSignals];
             for (int i = 0; i < display.Length; i++)
             {
                 display[i] = true;
             }
-            return DrawSignal(picToModify, DrawGrid, startTime, endTime, gain, display);
+            return DrawEeg(picToModify, DrawGrid, startTime, endTime, gain, display);
         }
+
+
         private void setAutoGain(int[][] samples)
         {
             //int nChannels = m_header.NumberOfSignals;
@@ -1188,7 +1204,7 @@ namespace Analysis
                 for (int sampleIndex = 0; sampleIndex < samples[channelIndex].Length; sampleIndex++)
                 {
                     //awkward ! > handles nans correctly
-                    if(!(samples[channelIndex][sampleIndex] >= minValues[channelIndex]))
+                    if (!(samples[channelIndex][sampleIndex] >= minValues[channelIndex]))
                     //if (!(m_allSamples[channelIndex][sampleIndex] >= minValues[channelIndex]))
                     {
                         minValues[channelIndex] = samples[channelIndex][sampleIndex];
@@ -1214,52 +1230,175 @@ namespace Analysis
         }
         private void setAutoGain(int[] offset, int[] count)
         {
-            int nChannels = m_header.NumberOfSignals;
-            //double[] rangeReciprocals = new double[display.Length];
-            //double[] midRanges = new double[display.Length];
-            for (int i = 0; i < nChannels; i++)
+            if (m_allSamples != null)
             {
-                m_autoGainMidRanges[i] = 0;
-                m_autoGainRangeReciprocals[i] = 1;
-                //rangeReciprocals[i] = double.NaN;
-                //midRanges[i] = double.NaN;
-            }
-
-            double[] minValues = new double[nChannels];
-            double[] maxValues = new double[nChannels];
-            for (int channelIndex = 0; channelIndex < nChannels; channelIndex++)
-            {
-                minValues[channelIndex] = double.NaN;
-                maxValues[channelIndex] = double.NaN;
-                int endIndex = offset[channelIndex] + count[channelIndex];
-
-                for (int sampleIndex = offset[channelIndex];
-                    sampleIndex < m_allSamples[channelIndex].Length && sampleIndex < endIndex;
-                    sampleIndex++)
+                int nChannels = m_header.NumberOfSignals;
+                //double[] rangeReciprocals = new double[display.Length];
+                //double[] midRanges = new double[display.Length];
+                for (int i = 0; i < nChannels; i++)
                 {
-                    if (!(m_allSamples[channelIndex][sampleIndex] >= minValues[channelIndex]))
+                    m_autoGainMidRanges[i] = 0;
+                    m_autoGainRangeReciprocals[i] = 1;
+                    //rangeReciprocals[i] = double.NaN;
+                    //midRanges[i] = double.NaN;
+                }
+
+                double[] minValues = new double[nChannels];
+                double[] maxValues = new double[nChannels];
+                for (int channelIndex = 0; channelIndex < nChannels; channelIndex++)
+                {
+                    minValues[channelIndex] = double.NaN;
+                    maxValues[channelIndex] = double.NaN;
+                    int endIndex = offset[channelIndex] + count[channelIndex];
+
+                    for (int sampleIndex = offset[channelIndex];
+                        sampleIndex < m_allSamples[channelIndex].Length && sampleIndex < endIndex;
+                        sampleIndex++)
                     {
-                        minValues[channelIndex] = m_allSamples[channelIndex][sampleIndex];
-                    }
-                    if (!(m_allSamples[channelIndex][sampleIndex] <= maxValues[channelIndex]))
-                    {
-                        maxValues[channelIndex] = m_allSamples[channelIndex][sampleIndex];
+                        if (!(m_allSamples[channelIndex][sampleIndex] >= minValues[channelIndex]))
+                        {
+                            minValues[channelIndex] = m_allSamples[channelIndex][sampleIndex];
+                        }
+                        if (!(m_allSamples[channelIndex][sampleIndex] <= maxValues[channelIndex]))
+                        {
+                            maxValues[channelIndex] = m_allSamples[channelIndex][sampleIndex];
+                        }
                     }
                 }
-            }
-            for (int i = 0; i < nChannels; i++)
-            {
-                m_autoGainMidRanges[i] = (maxValues[i] + minValues[i]) * 0.5;
-                m_autoGainRangeReciprocals[i] = 1.0 / (maxValues[i] - minValues[i]);
-                if (m_autoGainRangeReciprocals[i] == double.NaN ||
-                    m_autoGainRangeReciprocals[i] == double.PositiveInfinity ||
-                    m_autoGainRangeReciprocals[i] == double.NegativeInfinity)
+                for (int i = 0; i < nChannels; i++)
                 {
-                    m_autoGainRangeReciprocals[i] = 1.0;
+                    m_autoGainMidRanges[i] = (maxValues[i] + minValues[i]) * 0.5;
+                    m_autoGainRangeReciprocals[i] = 1.0 / (maxValues[i] - minValues[i]);
+                    if (m_autoGainRangeReciprocals[i] == double.NaN ||
+                        m_autoGainRangeReciprocals[i] == double.PositiveInfinity ||
+                        m_autoGainRangeReciprocals[i] == double.NegativeInfinity)
+                    {
+                        m_autoGainRangeReciprocals[i] = 1.0;
+                    }
                 }
             }
         }
-        public Bitmap DrawSignal(Bitmap picToModify, bool DrawGrid, double startTime, double endTime, double gain, bool[] display)
+        public static void DrawSignals(Bitmap picToModify, double[][] samples, double gain, bool[] display)
+        {
+            Graphics g = Graphics.FromImage(picToModify);
+            //int sampleCount = Util.GetMaxLength(samples);
+            int numberOfDisplayedChannels = Util.Count(display);
+            double[] sampleMeans = Util.Mean(samples);
+
+            float x1, x2, y1, y2;
+            x1 = x2 = y1 = y2 = 0;
+            double HeightReciprocal = 1.0 / (gain * (2 * numberOfDisplayedChannels + 1));
+            //iterate through all channels that are toggled to be displayed.
+            int[] displayedChannelIndices = new int[display.Length];
+
+            int channelIndex = 0;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                //int channelIndex = 0;
+                //int displayedChannelCounter = 0;
+                //while (displayedChannelCounter <= i)
+                //{
+                //    if (display[channelIndex])
+                //    {
+                //        displayedChannelIndices[displayedChannelCounter] = channelIndex;
+                //        displayedChannelCounter++;
+                //    }
+                //    channelIndex++;
+                //}
+                //channelIndex--;
+                if (display[i])
+                {
+                    double[] thisChannel = samples[i];
+                    double WidthReciprocal = 1.0 / thisChannel.Length;
+                    x1 = 0;
+
+                    //draw for each frame of the eeg, even if they have to squish 
+                    //into the width of the bitmap's pixels
+                    //double samplesPerSecond = (double)m_header.SignalSamplesPerRecord(channelIndex) / m_header.RecordDuration;
+                    //double sampleNumberD = startTime * samplesPerSecond;
+                    //if (Math.Floor(sampleNumberD) != sampleNumberD)
+                    //{
+                    //    sampleNumberD = Math.Floor(sampleNumberD) + 1;
+                    //}
+                    //long sampleNumber = (long)sampleNumberD;
+
+                    Pen p = new Pen(GetColor(channelIndex));
+                    double newGain = gain;
+                    //double heightScalar;
+                    //if (newGain == 0)
+                    //{
+                    //    heightScalar = (double)picToModify.Height
+                    //        // / (maxValues[channelIndex]-minValues[channelIndex])
+                    //        / (double)numberOfDisplayedChannels;
+                    //    newGain = 1;
+                    //}
+                    //else
+                    //{
+                    //heightScalar = (double)picToModify.Height / gain
+                    ///// (m_header.SignalDigitalMax(channelIndex) - m_header.SignalDigitalMin(channelIndex))
+                    /// (double)numberOfDisplayedChannels;
+                    //}
+
+                    double channelY = (0.5 + i) * picToModify.Height / (numberOfDisplayedChannels + 1);
+                    y1 = (float)channelY;
+                    //double channelY = (0.5 + (double)channelIndex) * picToModify.Height / (numberOfDisplayedChannels + 1);
+                    //double xDenom = 1.0 / (double)(digitalSamples[channelIndex].Length);
+                    //int sampleIncrement = 1;
+                    //if (!m_drawModeAntiAlias)
+                    //{
+                    //    sampleIncrement = (int)(0.5 * (double)m_readFunctionCount[channelIndex] / (double)picToModify.Width);
+                    //    if (sampleIncrement < 1) { sampleIncrement = 1; }
+                    //}
+
+                    //int endIndex = m_readFunctionCount[i] + m_readFunctionOffset[i];
+                    //for (long j = m_readFunctionOffset[channelIndex]; j < digitalSamples[i].Length && j < endIndex; j += sampleIncrement)
+                    for (int j = 0; j < samples[i].Length; j++)
+                    {
+                        //double sampleTime = sampleNumber / samplesPerSecond;
+                        //double sampleTime = j / samplesPerSecond;
+                        //set the x value for the next segment of the curve
+                        //x2 = (float)((sampleTime - startTime) * WidthReciprocal * picToModify.Width);
+                        x2 = (float)(j * WidthReciprocal * picToModify.Width);
+                        //set the y value for the next segment of the 
+                        //if (gain == 0)
+                        //{
+                        //    double temp = (digitalSamples[channelIndex][j] - m_autoGainMidRanges[channelIndex]) * m_autoGainRangeReciprocals[channelIndex];
+                        //    temp *= heightScalar;
+                        //    temp *= newGain;
+                        //    temp += channelY;
+                        //    y2 = (float)temp;
+                        //    //y2 = (float)(((bytes[channelIndex][j] - middle) * heightScalar * newGain + channelY));
+                        //}
+                        //else
+                        //{
+                        double demeaned = samples[i][j] - sampleMeans[i];
+                        y2 = (float)((demeaned * newGain + channelY));
+                        //}
+                        if (y2 > picToModify.Height) { y2 = picToModify.Height - 1; }
+                        if (y2 < 0) { y2 = 0; }
+                        if (j != 0          //need two points.  there's only one when j==0
+                            && x1 <= x2)    //prevents erroneous connections between channels in the raw tracing
+                        {
+                            //draw the line.
+                            g.DrawLine(p, x1, y1, x2, y2);
+                        }
+                        //move new to old.
+                        x1 = x2;
+                        y1 = y2;
+                        //sampleNumber++;
+                    }
+                    //float fontSize = (float)picToModify.Height / (float)(numberOfDisplayedChannels * 3);
+                    //g.DrawString(m_header.SignalLabel(channelIndex),
+                    //    new Font("Arial", fontSize),
+                    //    new SolidBrush(Color.Black), 10,
+                    //    (float)(channelY));
+                    channelIndex++;
+                }
+
+            }
+        }
+
+        public Bitmap DrawEeg(Bitmap picToModify, bool DrawGrid, double startTime, double endTime, double gain, bool[] display)
         {
             //debug
             //debug
@@ -1270,234 +1409,251 @@ namespace Analysis
             //end debug
             //end debug
             #region initialization
-            int[][] samples = ReadRecord(startTime, endTime, out m_readFunctionOffset, out m_readFunctionCount);
-            int numberOfDisplayedChannels = 0;
-            for (int i = 0; i < display.Length; i++)
+            int[][] digitalSamples = ReadRecord(startTime, endTime, out m_readFunctionOffset, out m_readFunctionCount);
+            double[][] physicalSamples = ReadData(startTime, endTime);
+            if (gain != 0)
             {
-                if (display[i])
-                {
-                    numberOfDisplayedChannels++;
-                }
-            }
-            //debug
-            splits.Add(stopWatch.ElapsedMilliseconds);
-            //end debug
+                EDFfile.DrawSignals(picToModify, physicalSamples, gain, display);
+                return picToModify;
 
-            //setAutoGain(m_readFunctionOffset, m_readFunctionCount);
-            if (gain == 0)
-            {
-                setAutoGain(samples);
-            }
-            //debug
-            splits.Add(stopWatch.ElapsedMilliseconds);
-            //end debug
-
-            //Bitmap picToModify = new Bitmap(picWidth, picHeight);
-            Graphics g = Graphics.FromImage(picToModify);
-            if (m_drawModeAntiAlias)
-            {
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             }
             else
             {
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
-            }
-            #endregion initialization
-
-            #region drawgridlines
-            //draw gridlines
-            if (DrawGrid)
-            {
+                double[] signalMeans = new double[physicalSamples.Length];
+                for (int i = 0; i < signalMeans.Length; i++)
                 {
-                    Pen minorPen = new Pen(Color.Pink);
-                    Pen majorPen = new Pen(Color.Pink, Math.Max(2.0f, (float)picToModify.Width / 500.0f));
-                    //start at a point where the frame is clearly at a second marker
-                    double timeCursor = startTime;
-                    timeCursor = (Math.Floor(timeCursor * 5.0) + 1.0) / 5.0;
-                    double lastTic = endTime;
-                    lastTic = (Math.Floor(lastTic * 5.0) + 1.0) / 5.0;
-                    Pen drawPen = new Pen(Color.WhiteSmoke);
-                    while (timeCursor < lastTic)
+                    if (gain == 0)
                     {
-                        //major tic
-                        if (Math.Floor(timeCursor) == timeCursor)
-                        {
-                            drawPen = majorPen;
-                        }
-                        //minor tic
-                        else
-                        {
-                            drawPen = minorPen;
-                        }
-                        float x = (float)((timeCursor - startTime) / (endTime - startTime) * picToModify.Width);
-                        g.DrawLine(drawPen, x, 0, x, picToModify.Height);
-
-                        timeCursor += 0.2;
-                        timeCursor = (Math.Floor(timeCursor * 5.0 + 0.5)) / 5.0;
-                    }
-                }
-            }
-            #endregion drawgridlines
-
-            #region draw annotations
-            //draw annotations
-            int annotationIndex = 0;
-            while (annotationIndex < m_annotationOnsets.Count && m_annotationOnsets[annotationIndex] < endTime)
-            {
-                if (m_annotationOnsets[annotationIndex] >= startTime)
-                {
-                    Pen p = new Pen(Color.Black);
-                    float x;
-                    if (m_annotationDurations[annotationIndex] > 0)
-                    {
-                        x = (float)((m_annotationOnsets[annotationIndex] - startTime) / (endTime - startTime) * picToModify.Width);
-                        float width = (float)((m_annotationDurations[annotationIndex]) / (endTime - startTime) * picToModify.Width);
-                        g.FillRectangle(Brushes.LightBlue, x, 0, width, picToModify.Height);
+                        signalMeans[i] = 0;
                     }
                     else
                     {
-                        x = (float)((m_annotationOnsets[annotationIndex] - startTime) / (endTime - startTime) * picToModify.Width);
-                        g.DrawLine(p, x, 0, x, picToModify.Height);
+                        signalMeans[i] = Util.Mean(physicalSamples[i]);
                     }
-                    float fontHeight = picToModify.Height / (numberOfDisplayedChannels * 3);
-                    g.DrawString(m_annotations[annotationIndex], new Font("Arial", fontHeight),
-                        Brushes.Black, x, picToModify.Height - fontHeight - 10);
                 }
-                annotationIndex++;
-            }
-            #endregion draw annotations
-
-            //debug
-            splits.Add(stopWatch.ElapsedMilliseconds);
-            //end debug
-
-            #region draw signals
-
-
-            float x1, x2, y1, y2;
-            x1 = x2 = y1 = y2 = 0;
-            double WidthReciprocal = 1.0 / (endTime - startTime);
-            double HeightReciprocal = 1.0 / (gain * (2 * numberOfDisplayedChannels + 1));
-            //iterate through all channels that are toggled to be displayed.
-            int[] displayedChannelIndices = new int[numberOfDisplayedChannels];
-            for (int i = 0; i < numberOfDisplayedChannels; i++)
-            {
-                int channelIndex = 0;
-                int displayedChannelCounter = 0;
-                while (displayedChannelCounter <= i)
+                int numberOfDisplayedChannels = 0;
+                for (int i = 0; i < display.Length; i++)
                 {
-                    if (display[channelIndex])
+                    if (display[i])
                     {
-                        displayedChannelIndices[displayedChannelCounter] = channelIndex;
-                        displayedChannelCounter++;
+                        numberOfDisplayedChannels++;
                     }
-                    channelIndex++;
                 }
-                channelIndex--;
 
-                //draw for each frame of the eeg, even if they have to squish 
-                //into the width of the bitmap's pixels
-                double samplesPerSecond = (double)m_header.SignalSamplesPerRecord(channelIndex) / m_header.RecordDuration;
-                double sampleNumberD = startTime * samplesPerSecond;
-                if (Math.Floor(sampleNumberD) != sampleNumberD)
+                setAutoGain(m_readFunctionOffset, m_readFunctionCount);
+                if (gain == 0)
                 {
-                    sampleNumberD = Math.Floor(sampleNumberD) + 1;
+                    setAutoGain(digitalSamples);
                 }
-                long sampleNumber = (long)sampleNumberD;
 
-                Pen p = new Pen(GetColor(channelIndex));
-                double newGain = gain;
-                double heightScalar;
-                if (newGain == 0)
+
+                //Bitmap picToModify = new Bitmap(picWidth, picHeight);
+                Graphics g = Graphics.FromImage(picToModify);
+                if (m_drawModeAntiAlias)
                 {
-                    heightScalar = (double)picToModify.Height
-                        // / (maxValues[channelIndex]-minValues[channelIndex])
-                        / (double)numberOfDisplayedChannels;
-                    newGain = 1;
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 }
                 else
                 {
-                    heightScalar = (double)picToModify.Height * gain
-                        / (m_header.SignalDigitalMax(channelIndex) - m_header.SignalDigitalMin(channelIndex))
-                        / (double)numberOfDisplayedChannels;
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
                 }
+                #endregion initialization
 
-                double channelY = (0.5 + i) * picToModify.Height / (numberOfDisplayedChannels + 1);
-                //double channelY = (0.5 + (double)channelIndex) * picToModify.Height / (numberOfDisplayedChannels + 1);
-                double xDenom = 1.0 / (double)samples[channelIndex].Length;
-                int sampleIncrement = 1;
-                if (!m_drawModeAntiAlias)
+                #region drawgridlines
+                //draw gridlines
+                if (DrawGrid)
                 {
-                    sampleIncrement = (int)(0.5 * (double)m_readFunctionCount[channelIndex] / (double)picToModify.Width);
-                    if (sampleIncrement < 1) { sampleIncrement = 1; }
+                    {
+                        Pen minorPen = new Pen(Color.Pink);
+                        Pen majorPen = new Pen(Color.Pink, Math.Max(2.0f, (float)picToModify.Width / 500.0f));
+                        //start at a point where the frame is clearly at a second marker
+                        double timeCursor = startTime;
+                        timeCursor = (Math.Floor(timeCursor * 5.0) + 1.0) / 5.0;
+                        double lastTic = endTime;
+                        lastTic = (Math.Floor(lastTic * 5.0) + 1.0) / 5.0;
+                        Pen drawPen = new Pen(Color.WhiteSmoke);
+                        while (timeCursor < lastTic)
+                        {
+                            //major tic
+                            if (Math.Floor(timeCursor) == timeCursor)
+                            {
+                                drawPen = majorPen;
+                            }
+                            //minor tic
+                            else
+                            {
+                                drawPen = minorPen;
+                            }
+                            float x = (float)((timeCursor - startTime) / (endTime - startTime) * picToModify.Width);
+                            g.DrawLine(drawPen, x, 0, x, picToModify.Height);
+
+                            timeCursor += 0.2;
+                            timeCursor = (Math.Floor(timeCursor * 5.0 + 0.5)) / 5.0;
+                        }
+                    }
                 }
+                #endregion drawgridlines
+
+                #region draw annotations
+                //draw annotations
+                int annotationIndex = 0;
+                while (annotationIndex < m_annotationOnsets.Count && m_annotationOnsets[annotationIndex] < endTime)
+                {
+                    if (m_annotationOnsets[annotationIndex] >= startTime)
+                    {
+                        Pen p = new Pen(Color.Black);
+                        float x;
+                        if (m_annotationDurations[annotationIndex] > 0)
+                        {
+                            x = (float)((m_annotationOnsets[annotationIndex] - startTime) / (endTime - startTime) * picToModify.Width);
+                            float width = (float)((m_annotationDurations[annotationIndex]) / (endTime - startTime) * picToModify.Width);
+                            g.FillRectangle(Brushes.LightBlue, x, 0, width, picToModify.Height);
+                        }
+                        else
+                        {
+                            x = (float)((m_annotationOnsets[annotationIndex] - startTime) / (endTime - startTime) * picToModify.Width);
+                            g.DrawLine(p, x, 0, x, picToModify.Height);
+                        }
+                        float fontHeight = picToModify.Height / (numberOfDisplayedChannels * 3);
+                        g.DrawString(m_annotations[annotationIndex], new Font("Arial", fontHeight),
+                            Brushes.Black, x, picToModify.Height - fontHeight - 10);
+                    }
+                    annotationIndex++;
+                }
+                #endregion draw annotations
 
                 //debug
-                int temp4 = m_readFunctionCount[channelIndex];
-                int temp5 = samples[channelIndex].Length;
+                splits.Add(stopWatch.ElapsedMilliseconds);
                 //end debug
-                int endIndex = m_readFunctionCount[i] + m_readFunctionOffset[i];
-                for (long j = m_readFunctionOffset[channelIndex]; j < samples[i].Length && j < endIndex; j += sampleIncrement)
+
+                #region draw signals
+
+
+                float x1, x2, y1, y2;
+                x1 = x2 = y1 = y2 = 0;
+                double WidthReciprocal = 1.0 / (endTime - startTime);
+                double HeightReciprocal = 1.0 / (gain * (2 * numberOfDisplayedChannels + 1));
+                //iterate through all channels that are toggled to be displayed.
+                int[] displayedChannelIndices = new int[numberOfDisplayedChannels];
+                for (int i = 0; i < numberOfDisplayedChannels; i++)
                 {
-                    //double sampleTime = sampleNumber / samplesPerSecond;
-                    double sampleTime = j / samplesPerSecond;
-                    //set the x value for the next segment of the curve
-                    //x2 = (float)((sampleTime - startTime) * WidthReciprocal * picToModify.Width);
-                    x2 = (float)(sampleTime * WidthReciprocal * picToModify.Width);
-                    //set the y value for the next segment of the 
-                    if (gain == 0)
+                    int channelIndex = 0;
+                    int displayedChannelCounter = 0;
+                    while (displayedChannelCounter <= i)
                     {
-                        double temp = (samples[channelIndex][j] - m_autoGainMidRanges[channelIndex]) * m_autoGainRangeReciprocals[channelIndex];
-                        temp *= heightScalar;
-                        temp *= newGain;
-                        temp += channelY;
-                        y2 = (float)temp;
-                        //y2 = (float)(((bytes[channelIndex][j] - middle) * heightScalar * newGain + channelY));
+                        if (display[channelIndex])
+                        {
+                            displayedChannelIndices[displayedChannelCounter] = channelIndex;
+                            displayedChannelCounter++;
+                        }
+                        channelIndex++;
+                    }
+                    channelIndex--;
+
+                    //draw for each frame of the eeg, even if they have to squish 
+                    //into the width of the bitmap's pixels
+                    double samplesPerSecond = (double)m_header.SignalSamplesPerRecord(channelIndex) / m_header.RecordDuration;
+                    double sampleNumberD = startTime * samplesPerSecond;
+                    if (Math.Floor(sampleNumberD) != sampleNumberD)
+                    {
+                        sampleNumberD = Math.Floor(sampleNumberD) + 1;
+                    }
+                    long sampleNumber = (long)sampleNumberD;
+
+                    Pen p = new Pen(GetColor(channelIndex));
+                    double newGain = gain;
+                    double heightScalar;
+                    if (newGain == 0)
+                    {
+                        heightScalar = (double)picToModify.Height
+                            // / (maxValues[channelIndex]-minValues[channelIndex])
+                            / (double)numberOfDisplayedChannels;
+                        newGain = 1;
                     }
                     else
                     {
-                        y2 = (float)((samples[channelIndex][j] * heightScalar * newGain + channelY));
+                        heightScalar = (double)picToModify.Height * gain
+                            / (m_header.SignalDigitalMax(channelIndex) - m_header.SignalDigitalMin(channelIndex))
+                            / (double)numberOfDisplayedChannels;
                     }
-                    if (y2 > picToModify.Height) y2 = picToModify.Height - 1;
-                    if (y2 < 0) y2 = 0;
-                    if (j != 0          //need two points.  there's only one when j==0
-                        && x1 <= x2)    //prevents erroneous connections between channels in the raw tracing
+
+                    double channelY = (0.5 + i) * picToModify.Height / (numberOfDisplayedChannels + 1);
+                    //double channelY = (0.5 + (double)channelIndex) * picToModify.Height / (numberOfDisplayedChannels + 1);
+                    double xDenom = 1.0 / (double)digitalSamples[channelIndex].Length;
+                    int sampleIncrement = 1;
+                    if (!m_drawModeAntiAlias)
                     {
-                        //draw the line.
-                        g.DrawLine(p, x1, y1, x2, y2);
-
-                        //debug
-                        linesDrawn++;
-                        //end debug
-
+                        sampleIncrement = (int)(0.5 * (double)m_readFunctionCount[channelIndex] / (double)picToModify.Width);
+                        if (sampleIncrement < 1) { sampleIncrement = 1; }
                     }
-                    //move new to old.
-                    x1 = x2;
-                    y1 = y2;
-                    sampleNumber++;
-                }
-                float fontSize = (float)picToModify.Height / (float)(numberOfDisplayedChannels * 3);
-                g.DrawString(m_header.SignalLabel(channelIndex),
-                    new Font("Arial", fontSize),
-                    new SolidBrush(Color.Black), 10,
-                    (float)(channelY));
-            }
-            #endregion draw signals
-            //debug
-            splits.Add(stopWatch.ElapsedMilliseconds);
-            //end debug
 
-            //debug
-            stopWatch.Stop();
-            long milliSeconds = stopWatch.ElapsedMilliseconds;
-            if (milliSeconds > 0)
-            {
-                double linesPerMillisecond = linesDrawn / milliSeconds;
+                    //debug
+                    int temp4 = m_readFunctionCount[channelIndex];
+                    int temp5 = digitalSamples[channelIndex].Length;
+                    //end debug
+                    int endIndex = m_readFunctionCount[i] + m_readFunctionOffset[i];
+                    for (long j = m_readFunctionOffset[channelIndex]; j < digitalSamples[i].Length && j < endIndex; j += sampleIncrement)
+                    {
+                        //double sampleTime = sampleNumber / samplesPerSecond;
+                        double sampleTime = j / samplesPerSecond;
+                        //set the x value for the next segment of the curve
+                        //x2 = (float)((sampleTime - startTime) * WidthReciprocal * picToModify.Width);
+                        x2 = (float)(sampleTime * WidthReciprocal * picToModify.Width);
+                        //set the y value for the next segment of the 
+                        if (gain == 0)
+                        {
+                            double temp = (digitalSamples[channelIndex][j] - m_autoGainMidRanges[channelIndex]) * m_autoGainRangeReciprocals[channelIndex];
+                            temp *= heightScalar;
+                            temp *= newGain;
+                            temp += channelY;
+                            y2 = (float)temp;
+                            //y2 = (float)(((bytes[channelIndex][j] - middle) * heightScalar * newGain + channelY));
+                        }
+                        else
+                        {
+                            y2 = (float)((digitalSamples[channelIndex][j] * heightScalar * newGain + channelY));
+                        }
+                        if (y2 > picToModify.Height) y2 = picToModify.Height - 1;
+                        if (y2 < 0) y2 = 0;
+                        if (j != 0          //need two points.  there's only one when j==0
+                            && x1 <= x2)    //prevents erroneous connections between channels in the raw tracing
+                        {
+                            //draw the line.
+                            g.DrawLine(p, x1, y1, x2, y2);
+
+                            //debug
+                            linesDrawn++;
+                            //end debug
+
+                        }
+                        //move new to old.
+                        x1 = x2;
+                        y1 = y2;
+                        sampleNumber++;
+                    }
+                    float fontSize = (float)picToModify.Height / (float)(numberOfDisplayedChannels * 3);
+                    g.DrawString(m_header.SignalLabel(channelIndex),
+                        new Font("Arial", fontSize),
+                        new SolidBrush(Color.Black), 10,
+                        (float)(channelY));
+                }
+                #endregion draw signals
+                //debug
+                splits.Add(stopWatch.ElapsedMilliseconds);
+                //end debug
+
+                //debug
+                stopWatch.Stop();
+                long milliSeconds = stopWatch.ElapsedMilliseconds;
+                if (milliSeconds > 0)
+                {
+                    double linesPerMillisecond = linesDrawn / milliSeconds;
+                }
+                //end debug
+                return picToModify;
             }
-            //end debug
-            return picToModify;
         }
-        protected Color GetColor(int i)
+        protected static Color GetColor(int i)
         {
             //if (!IsMonochrome)
             {
@@ -1553,7 +1709,6 @@ namespace Analysis
             }
         }
         #endregion drawing
-
 
 
     }

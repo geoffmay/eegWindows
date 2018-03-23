@@ -24,6 +24,7 @@ namespace Analysis
 
         bool m_isPictureboxSelecting = false;
         int[] m_selections;
+        bool[] m_displayChannel;
 
         string m_lastFile = "";
         public FormTrace()
@@ -37,6 +38,7 @@ namespace Analysis
             InitializeComponent();
             hScrollBarWindow.ValueChanged += new EventHandler(hScrollBarWindow_ValueChanged);
             pictureBoxEeg.MouseDown += new MouseEventHandler(pictureBoxEeg_MouseDown);
+            numericUpDownGain.ValueChanged += NumericUpDownGain_ValueChanged;
 
             pictureBoxEeg.Width = m_picWidth;
             pictureBoxEeg.Height = m_picHeight;
@@ -44,6 +46,11 @@ namespace Analysis
             m_picWidthMargin = this.Width - m_picWidth;
             setDefaults();
             loadSettings();
+        }
+
+        private void NumericUpDownGain_ValueChanged(object sender, EventArgs e)
+        {
+            drawEeg();
         }
 
         void pictureBoxEeg_MouseDown(object sender, MouseEventArgs e)
@@ -91,7 +98,14 @@ namespace Analysis
                 if (pictureBoxEeg.Width > 0 && pictureBoxEeg.Height > 0)
                 {
                     Bitmap bmp = new Bitmap(pictureBoxEeg.Width, pictureBoxEeg.Height);
-                    m_file.DrawSignal(bmp, true, m_startTime, m_startTime + m_windowDuration);
+                    if(checkBoxAutoGain.Checked)
+                    {
+                        m_file.DrawEeg(bmp, true, m_startTime, m_startTime + m_windowDuration);
+                    }
+                    else
+                    {
+                        m_file.DrawEeg(bmp, true, m_startTime, m_startTime + m_windowDuration, (double)numericUpDownGain.Value);
+                    }
                     pictureBoxEeg.Image = bmp;
                     textBox1.Text = m_startTime.ToString();
                     textBox2.Text = (m_startTime + m_windowDuration).ToString();
@@ -112,7 +126,10 @@ namespace Analysis
                 using (StreamReader sReader = new StreamReader(m_settingsFile))
                 {
                     m_lastFile = sReader.ReadLine();
-                    loadData(m_lastFile);
+                    if (File.Exists(m_lastFile))
+                    {
+                        loadData(m_lastFile);
+                    }
                 }
             }
         }
@@ -195,6 +212,7 @@ namespace Analysis
         private void checkBoxAutoGain_CheckedChanged(object sender, EventArgs e)
         {
             numericUpDownGain.Enabled = !checkBoxAutoGain.Checked;
+            drawEeg();
         }
         
     }
