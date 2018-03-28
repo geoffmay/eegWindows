@@ -105,7 +105,6 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TestPython.cs" />
     <Compile Include="Util.cs" />
     <EmbeddedResource Include="FormChannelSelector.resx">
       <SubType>Designer</SubType>
@@ -145,11 +144,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Util\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Test.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

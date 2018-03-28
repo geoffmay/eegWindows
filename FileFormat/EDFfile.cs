@@ -487,18 +487,31 @@ namespace Analysis
             }
             if (openFully)
             {
-                int[] offset, count;
-                double endTime = retVal.m_header.NumberOfRecords * retVal.m_header.RecordDuration;
-                retVal.m_allSamples = retVal.ReadRecord(0.0, endTime, out offset, out count);
-                retVal.m_memoryStartTime = 0.0;
-                retVal.m_memoryEndTime = endTime;
-
-                retVal.m_fullyInMemory = true;
+                //int[] offset, count;
+                //double endTime = retVal.m_header.NumberOfRecords * retVal.m_header.RecordDuration;
+                //retVal.m_allSamples = retVal.ReadRecord(0.0, endTime, out offset, out count);
+                //retVal.m_memoryStartTime = 0.0;
+                //retVal.m_memoryEndTime = endTime;
+                //retVal.m_fullyInMemory = true;
+                retVal.readAllRecords();
             }
             return retVal;
         }
+        private void readAllRecords()
+        {
+            int[] offset, count;
+            double endTime = m_header.NumberOfRecords * m_header.RecordDuration;
+            m_allSamples = ReadRecord(0.0, endTime, out offset, out count);
+            m_memoryStartTime = 0.0;
+            m_memoryEndTime = endTime;
+            m_fullyInMemory = true;
+        }
         public void convertToRaw(string outputFilename)
         {
+            if (!m_fullyInMemory)
+            {
+                readAllRecords();
+            }
             using (FileStream fStream = new FileStream(outputFilename, FileMode.Create, FileAccess.Write))
             {
                 BinaryWriter writer = new BinaryWriter(fStream);
@@ -1449,6 +1462,8 @@ namespace Analysis
 
                 //Bitmap picToModify = new Bitmap(picWidth, picHeight);
                 Graphics g = Graphics.FromImage(picToModify);
+                Brush whiteBrush = Brushes.White;
+                g.FillRectangle(whiteBrush, new Rectangle(0,0,picToModify.Width, picToModify.Height));
                 if (m_drawModeAntiAlias)
                 {
                     g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;

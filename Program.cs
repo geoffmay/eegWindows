@@ -17,7 +17,7 @@ namespace Analysis
             {
                 var result = SetProcessDpiAwareness(PROCESS_DPI_AWARENESS.Process_Per_Monitor_DPI_Aware);
             }
-            string pyCall = TestPython.testCall();
+            //string pyCall = TestPython.testCall();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormTrace());

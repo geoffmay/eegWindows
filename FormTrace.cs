@@ -17,12 +17,15 @@ namespace Analysis
         double m_sampleRate;
         double m_windowDuration;
         double m_gain;
-        int m_picWidth = 691;
-        int m_picHeight = 333;
         int m_picWidthMargin = -1;
         int m_picHeightMargin = -1;
 
-        bool m_isPictureboxSelecting = false;
+        int m_currentSelectionMode = 0;
+        int m_selectionStartIndex = -1;
+        int m_leftClickCounter = 1;
+        int m_rightClickCounter = -1;
+        Bitmap m_baseBitmap;
+        Bitmap m_overlayBitmap;
         int[] m_selections;
         bool[] m_displayChannel;
 
@@ -38,14 +41,64 @@ namespace Analysis
             InitializeComponent();
             hScrollBarWindow.ValueChanged += new EventHandler(hScrollBarWindow_ValueChanged);
             pictureBoxEeg.MouseDown += new MouseEventHandler(pictureBoxEeg_MouseDown);
+            pictureBoxEeg.MouseUp += new MouseEventHandler(PictureBoxEeg_MouseUp);
+            pictureBoxEeg.MouseMove += PictureBoxEeg_MouseMove;
             numericUpDownGain.ValueChanged += NumericUpDownGain_ValueChanged;
 
-            pictureBoxEeg.Width = m_picWidth;
-            pictureBoxEeg.Height = m_picHeight;
-            m_picHeightMargin = this.Height - m_picHeight;
-            m_picWidthMargin = this.Width - m_picWidth;
+            //pictureBoxEeg.Width = m_picWidth;
+            //pictureBoxEeg.Height = m_picHeight;
+            m_picHeightMargin = 745 - 333;
+            m_picWidthMargin = 1177 - 691;
+            //m_picHeightMargin = 745 - m_picHeight;
+            //m_picWidthMargin = 1177 - m_picWidth;
             setDefaults();
             loadSettings();
+        }
+
+        private void PictureBoxEeg_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (m_currentSelectionMode != 0)
+            {
+                double startPixel = Math.Min(e.X, m_selectionStartIndex);
+                double endPixel = Math.Max(e.X, m_selectionStartIndex);
+                double sampleRate = m_file.SamplesPerSecondMax;
+                double pixelToFrame = (double)sampleRate * m_windowDuration / (double)pictureBoxEeg.Width;
+                double startFrameOffset = startPixel * pixelToFrame;
+                double endFrameOffset = endPixel * pixelToFrame;
+                double windowStartFrame = m_startTime * sampleRate;
+                int startTime = (int)(windowStartFrame + startFrameOffset);
+                int endTime = (int)(windowStartFrame + endFrameOffset);
+                if (startTime != endTime)
+                { 
+                for (int i = startTime; i < endTime; i++)
+                {
+                    m_selections[i] = m_currentSelectionMode;
+                }
+                }
+                Bitmap bmp = m_baseBitmap;
+                drawOverlay(bmp);
+                //pictureBoxEeg.Image = bmp;
+            }
+        }
+
+        private void PictureBoxEeg_MouseUp(object sender, MouseEventArgs e)
+        {
+            m_currentSelectionMode = 0;
+        }
+        void pictureBoxEeg_MouseDown(object sender, MouseEventArgs e)
+        {
+            m_selectionStartIndex = e.X;
+            if(e.Button == MouseButtons.Left)
+            {
+                m_currentSelectionMode = m_leftClickCounter;
+                m_leftClickCounter++;
+            }
+            else if (e.Button == MouseButtons.Right)
+            {
+                m_currentSelectionMode = m_rightClickCounter;
+                m_rightClickCounter--;
+            }
+
         }
 
         private void NumericUpDownGain_ValueChanged(object sender, EventArgs e)
@@ -53,10 +106,6 @@ namespace Analysis
             drawEeg();
         }
 
-        void pictureBoxEeg_MouseDown(object sender, MouseEventArgs e)
-        {
-            throw new Exception("The method or operation is not implemented.");
-        }
 
         void hScrollBarWindow_ValueChanged(object sender, EventArgs e)
         {
@@ -98,7 +147,8 @@ namespace Analysis
                 if (pictureBoxEeg.Width > 0 && pictureBoxEeg.Height > 0)
                 {
                     Bitmap bmp = new Bitmap(pictureBoxEeg.Width, pictureBoxEeg.Height);
-                    if(checkBoxAutoGain.Checked)
+                    //draw eeg
+                    if (checkBoxAutoGain.Checked)
                     {
                         m_file.DrawEeg(bmp, true, m_startTime, m_startTime + m_windowDuration);
                     }
@@ -106,11 +156,64 @@ namespace Analysis
                     {
                         m_file.DrawEeg(bmp, true, m_startTime, m_startTime + m_windowDuration, (double)numericUpDownGain.Value);
                     }
-                    pictureBoxEeg.Image = bmp;
+                    m_baseBitmap = bmp;
+                    m_overlayBitmap = new Bitmap(m_baseBitmap.Width, m_baseBitmap.Height);
+                    drawOverlay(bmp);
+
+                    //update display
+                    //pictureBoxEeg.Image = bmp;
                     textBox1.Text = m_startTime.ToString();
                     textBox2.Text = (m_startTime + m_windowDuration).ToString();
+
+
                 }
             }
+        }
+        void drawOverlay(Bitmap bmp)
+        {
+            Graphics g = Graphics.FromImage(m_overlayBitmap);
+            //Graphics g = Graphics.FromImage(m_overlayBitmap);
+            g.DrawImage(bmp, new Point(0, 0));
+            Brush b = new SolidBrush(Color.FromArgb(128, 0, 10, 128));
+            double samplesPerSecond = m_file.SamplesPerSecondMax;
+            int startIndex = (int)(m_startTime * samplesPerSecond);
+            int endIndex = (int)((m_startTime + m_windowDuration) * samplesPerSecond);
+            int selectionStart = -1;
+            int i = startIndex;
+            double maxSampleRate = m_file.SamplesPerSecondMax;
+            bool lastSelected = m_selections[i] > 0;
+            if(lastSelected)
+            {
+                selectionStart = 0;
+            }
+            i++;
+            while (i < endIndex)
+            { 
+                bool isSelected = m_selections[i] > 0;
+                if(isSelected!=lastSelected)
+                {
+                    if(lastSelected)
+                    {
+                        int xStart = (int)(selectionStart * bmp.Width / m_windowDuration / maxSampleRate);
+                        int xEnd = (int)((i- startIndex) * bmp.Width / m_windowDuration / maxSampleRate);
+                        g.FillRectangle(b, new Rectangle(xStart, 0, xEnd-xStart, bmp.Height));
+                        //for (int x = xStart; x < xEnd; x++)
+                        //{
+                        //    for (int y = 0; y < bmp.Height; y++)
+                        //    {
+                        //        bmp.SetPixel(x, y, Color.CornflowerBlue);
+                        //    }
+                        //}
+                    }
+                    else
+                    {
+                        selectionStart = i -startIndex;
+                    }
+                    lastSelected = isSelected;
+                }
+                i++;
+            }
+            pictureBoxEeg.Image = m_overlayBitmap;
         }
         void saveSettings()
         {

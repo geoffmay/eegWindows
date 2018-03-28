@@ -1,0 +1,7 @@
+C:\Users\Eeg\source\repos\EEG-Analysis-software\TestDll\obj\x64\Debug\TestDll.csproj.CoreCompileInputs.cache
+C:\Users\Eeg\source\repos\EEG-Analysis-software\TestDll\bin\x64\Debug\TestDll.exe.config
+C:\Users\Eeg\source\repos\EEG-Analysis-software\TestDll\bin\x64\Debug\TestDll.exe
+C:\Users\Eeg\source\repos\EEG-Analysis-software\TestDll\bin\x64\Debug\TestDll.pdb
+C:\Users\Eeg\source\repos\EEG-Analysis-software\TestDll\obj\x64\Debug\TestDll.exe
+C:\Users\Eeg\source\repos\EEG-Analysis-software\TestDll\obj\x64\Debug\TestDll.pdb
+C:\Users\Eeg\source\repos\EEG-Analysis-software\TestDll\obj\x64\Debug\TestDll.csprojResolveAssemblyReference.cache
