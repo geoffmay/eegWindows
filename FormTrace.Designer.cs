@@ -33,12 +33,14 @@ namespace Analysis
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.displayChannelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.numericUpDownGain = new System.Windows.Forms.NumericUpDown();
             this.label1 = new System.Windows.Forms.Label();
-            this.displayChannelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.checkBoxAutoGain = new System.Windows.Forms.CheckBox();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
+            this.selectionLabelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.fourierAttributesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxEeg)).BeginInit();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownGain)).BeginInit();
@@ -46,29 +48,31 @@ namespace Analysis
             // 
             // pictureBoxEeg
             // 
-            this.pictureBoxEeg.Location = new System.Drawing.Point(67, 54);
+            this.pictureBoxEeg.Location = new System.Drawing.Point(100, 83);
+            this.pictureBoxEeg.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.pictureBoxEeg.Name = "pictureBoxEeg";
-            this.pictureBoxEeg.Size = new System.Drawing.Size(691, 333);
+            this.pictureBoxEeg.Size = new System.Drawing.Size(1036, 512);
             this.pictureBoxEeg.TabIndex = 0;
             this.pictureBoxEeg.TabStop = false;
-            this.pictureBoxEeg.Click += new System.EventHandler(this.pictureBoxEeg_Click);
             // 
             // hScrollBarWindow
             // 
-            this.hScrollBarWindow.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)
-                        | System.Windows.Forms.AnchorStyles.Right)));
-            this.hScrollBarWindow.Location = new System.Drawing.Point(67, 419);
+            this.hScrollBarWindow.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.hScrollBarWindow.Location = new System.Drawing.Point(100, 645);
             this.hScrollBarWindow.Name = "hScrollBarWindow";
-            this.hScrollBarWindow.Size = new System.Drawing.Size(694, 20);
+            this.hScrollBarWindow.Size = new System.Drawing.Size(1041, 20);
             this.hScrollBarWindow.TabIndex = 1;
             // 
             // menuStrip1
             // 
+            this.menuStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(770, 24);
+            this.menuStrip1.Padding = new System.Windows.Forms.Padding(9, 3, 0, 3);
+            this.menuStrip1.Size = new System.Drawing.Size(1155, 35);
             this.menuStrip1.TabIndex = 2;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -76,24 +80,34 @@ namespace Analysis
             // 
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.openFileToolStripMenuItem,
-            this.displayChannelsToolStripMenuItem});
+            this.displayChannelsToolStripMenuItem,
+            this.selectionLabelsToolStripMenuItem,
+            this.fourierAttributesToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(50, 29);
             this.fileToolStripMenuItem.Text = "File";
             // 
             // openFileToolStripMenuItem
             // 
             this.openFileToolStripMenuItem.Name = "openFileToolStripMenuItem";
-            this.openFileToolStripMenuItem.Size = new System.Drawing.Size(164, 22);
+            this.openFileToolStripMenuItem.Size = new System.Drawing.Size(253, 30);
             this.openFileToolStripMenuItem.Text = "Open File";
             this.openFileToolStripMenuItem.Click += new System.EventHandler(this.openFileToolStripMenuItem_Click);
+            // 
+            // displayChannelsToolStripMenuItem
+            // 
+            this.displayChannelsToolStripMenuItem.Name = "displayChannelsToolStripMenuItem";
+            this.displayChannelsToolStripMenuItem.Size = new System.Drawing.Size(253, 30);
+            this.displayChannelsToolStripMenuItem.Text = "Display Channels";
+            this.displayChannelsToolStripMenuItem.Click += new System.EventHandler(this.displayChannelsToolStripMenuItem_Click);
             // 
             // numericUpDownGain
             // 
             this.numericUpDownGain.Enabled = false;
-            this.numericUpDownGain.Location = new System.Drawing.Point(12, 88);
+            this.numericUpDownGain.Location = new System.Drawing.Point(18, 135);
+            this.numericUpDownGain.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.numericUpDownGain.Name = "numericUpDownGain";
-            this.numericUpDownGain.Size = new System.Drawing.Size(49, 20);
+            this.numericUpDownGain.Size = new System.Drawing.Size(74, 26);
             this.numericUpDownGain.TabIndex = 3;
             this.numericUpDownGain.Value = new decimal(new int[] {
             1,
@@ -104,27 +118,22 @@ namespace Analysis
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(13, 49);
+            this.label1.Location = new System.Drawing.Point(20, 75);
+            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(32, 13);
+            this.label1.Size = new System.Drawing.Size(47, 20);
             this.label1.TabIndex = 4;
             this.label1.Text = "Gain:";
-            // 
-            // displayChannelsToolStripMenuItem
-            // 
-            this.displayChannelsToolStripMenuItem.Name = "displayChannelsToolStripMenuItem";
-            this.displayChannelsToolStripMenuItem.Size = new System.Drawing.Size(164, 22);
-            this.displayChannelsToolStripMenuItem.Text = "Display Channels";
-            this.displayChannelsToolStripMenuItem.Click += new System.EventHandler(this.displayChannelsToolStripMenuItem_Click);
             // 
             // checkBoxAutoGain
             // 
             this.checkBoxAutoGain.AutoSize = true;
             this.checkBoxAutoGain.Checked = true;
             this.checkBoxAutoGain.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBoxAutoGain.Location = new System.Drawing.Point(12, 65);
+            this.checkBoxAutoGain.Location = new System.Drawing.Point(18, 100);
+            this.checkBoxAutoGain.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.checkBoxAutoGain.Name = "checkBoxAutoGain";
-            this.checkBoxAutoGain.Size = new System.Drawing.Size(48, 17);
+            this.checkBoxAutoGain.Size = new System.Drawing.Size(69, 24);
             this.checkBoxAutoGain.TabIndex = 5;
             this.checkBoxAutoGain.Text = "Auto";
             this.checkBoxAutoGain.UseVisualStyleBackColor = true;
@@ -133,24 +142,39 @@ namespace Analysis
             // textBox1
             // 
             this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.textBox1.Location = new System.Drawing.Point(67, 394);
+            this.textBox1.Location = new System.Drawing.Point(100, 606);
+            this.textBox1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(100, 20);
+            this.textBox1.Size = new System.Drawing.Size(148, 26);
             this.textBox1.TabIndex = 6;
             // 
             // textBox2
             // 
             this.textBox2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox2.Location = new System.Drawing.Point(658, 393);
+            this.textBox2.Location = new System.Drawing.Point(987, 605);
+            this.textBox2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(100, 20);
+            this.textBox2.Size = new System.Drawing.Size(148, 26);
             this.textBox2.TabIndex = 7;
+            // 
+            // selectionLabelsToolStripMenuItem
+            // 
+            this.selectionLabelsToolStripMenuItem.Name = "selectionLabelsToolStripMenuItem";
+            this.selectionLabelsToolStripMenuItem.Size = new System.Drawing.Size(253, 30);
+            this.selectionLabelsToolStripMenuItem.Text = "Selection Labels";
+            this.selectionLabelsToolStripMenuItem.Click += new System.EventHandler(this.selectionLabelsToolStripMenuItem_Click);
+            // 
+            // fourierAttributesToolStripMenuItem
+            // 
+            this.fourierAttributesToolStripMenuItem.Name = "fourierAttributesToolStripMenuItem";
+            this.fourierAttributesToolStripMenuItem.Size = new System.Drawing.Size(253, 30);
+            this.fourierAttributesToolStripMenuItem.Text = "Fourier Attributes";
             // 
             // FormTrace
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(770, 448);
+            this.ClientSize = new System.Drawing.Size(1155, 689);
             this.Controls.Add(this.textBox2);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.checkBoxAutoGain);
@@ -160,6 +184,7 @@ namespace Analysis
             this.Controls.Add(this.pictureBoxEeg);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
+            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.Name = "FormTrace";
             this.Text = "Analyzer";
             this.Load += new System.EventHandler(this.FormTrace_Load);
@@ -185,6 +210,8 @@ namespace Analysis
         private System.Windows.Forms.CheckBox checkBoxAutoGain;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.ToolStripMenuItem selectionLabelsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem fourierAttributesToolStripMenuItem;
     }
 }
 

@@ -11,7 +11,9 @@ namespace Analysis
 {
     public partial class FormTrace : Form
     {
+        #region fields
         string m_settingsFile = "settings.txt";
+        string m_selectionFile;
         EDFfile m_file;
         double m_startTime;
         double m_sampleRate;
@@ -19,7 +21,6 @@ namespace Analysis
         double m_gain;
         int m_picWidthMargin = -1;
         int m_picHeightMargin = -1;
-
         int m_currentSelectionMode = 0;
         int m_selectionStartIndex = -1;
         int m_leftClickCounter = 1;
@@ -28,8 +29,115 @@ namespace Analysis
         Bitmap m_overlayBitmap;
         int[] m_selections;
         bool[] m_displayChannel;
-
         string m_lastFile = "";
+
+        #endregion fields
+
+
+
+        #region events
+
+        private void PictureBoxEeg_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (m_currentSelectionMode != 0)
+            {
+                double startPixel = Math.Min(e.X, m_selectionStartIndex);
+                double endPixel = Math.Max(e.X, m_selectionStartIndex);
+                double sampleRate = m_file.SamplesPerSecondMax;
+                double pixelToFrame = (double)sampleRate * m_windowDuration / (double)pictureBoxEeg.Width;
+                double startFrameOffset = startPixel * pixelToFrame;
+                double endFrameOffset = endPixel * pixelToFrame;
+                double windowStartFrame = m_startTime * sampleRate;
+                int startTime = (int)(windowStartFrame + startFrameOffset);
+                int endTime = (int)(windowStartFrame + endFrameOffset);
+                startTime = Math.Max(startTime, 0);
+                endTime = Math.Max(endTime, 0);
+                startTime = Math.Min(startTime, m_selections.Length);
+                endTime = Math.Min(endTime, m_selections.Length);
+                if (startTime != endTime)
+                {
+                    for (int i = startTime; i < endTime; i++)
+                    {
+                        m_selections[i] = m_currentSelectionMode;
+                    }
+                }
+                //Bitmap bmp = m_baseBitmap;
+                drawOverlay();
+                //pictureBoxEeg.Image = bmp;
+            }
+        }
+        private void PictureBoxEeg_MouseUp(object sender, MouseEventArgs e)
+        {
+            m_currentSelectionMode = 0;
+        }
+        void pictureBoxEeg_MouseDown(object sender, MouseEventArgs e)
+        {
+            m_selectionStartIndex = e.X;
+            if (e.Button == MouseButtons.Left)
+            {
+                m_currentSelectionMode = m_leftClickCounter;
+                m_leftClickCounter++;
+            }
+            else if (e.Button == MouseButtons.Right)
+            {
+                m_currentSelectionMode = m_rightClickCounter;
+                m_rightClickCounter--;
+            }
+
+        }
+        private void NumericUpDownGain_ValueChanged(object sender, EventArgs e)
+        {
+            drawEeg();
+        }
+        void hScrollBarWindow_ValueChanged(object sender, EventArgs e)
+        {
+            m_startTime = hScrollBarWindow.Value;
+            drawEeg();
+        }
+        void FormTrace_MouseWheel(object sender, MouseEventArgs e)
+        {
+            int newValue = (int)(hScrollBarWindow.Value + hScrollBarWindow.SmallChange * (double)(e.Delta / 120));
+            newValue = Math.Max(newValue, hScrollBarWindow.Minimum);
+            newValue = Math.Min(newValue, hScrollBarWindow.Maximum);
+            hScrollBarWindow.Value = newValue;
+        }
+        void FormTrace_Resize(object sender, EventArgs e)
+        {
+            pictureBoxEeg.Width = this.Width - m_picWidthMargin;
+            pictureBoxEeg.Height = this.Height - m_picHeightMargin;
+            drawEeg();
+        }
+        void FormTrace_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            saveSettings();
+            saveSelection();
+        }
+        private void openFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog fd = new OpenFileDialog();
+            if (fd.ShowDialog() == DialogResult.OK)
+            {
+                loadData(fd.FileName);
+                m_lastFile = fd.FileName;
+            }
+        }
+        private void checkBoxAutoGain_CheckedChanged(object sender, EventArgs e)
+        {
+            numericUpDownGain.Enabled = !checkBoxAutoGain.Checked;
+            drawEeg();
+        }
+        private void displayChannelsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            FormChannelSelector form = new FormChannelSelector(this);
+            form.Show();
+        }
+
+        #endregion events
+
+
+
+        #region construction/serialization
+
         public FormTrace()
         {
             //form events
@@ -54,92 +162,124 @@ namespace Analysis
             setDefaults();
             loadSettings();
         }
-
-        private void PictureBoxEeg_MouseMove(object sender, MouseEventArgs e)
+        private void FormTrace_Load(object sender, EventArgs e)
         {
-            if (m_currentSelectionMode != 0)
-            {
-                double startPixel = Math.Min(e.X, m_selectionStartIndex);
-                double endPixel = Math.Max(e.X, m_selectionStartIndex);
-                double sampleRate = m_file.SamplesPerSecondMax;
-                double pixelToFrame = (double)sampleRate * m_windowDuration / (double)pictureBoxEeg.Width;
-                double startFrameOffset = startPixel * pixelToFrame;
-                double endFrameOffset = endPixel * pixelToFrame;
-                double windowStartFrame = m_startTime * sampleRate;
-                int startTime = (int)(windowStartFrame + startFrameOffset);
-                int endTime = (int)(windowStartFrame + endFrameOffset);
-                if (startTime != endTime)
-                { 
-                for (int i = startTime; i < endTime; i++)
-                {
-                    m_selections[i] = m_currentSelectionMode;
-                }
-                }
-                Bitmap bmp = m_baseBitmap;
-                drawOverlay(bmp);
-                //pictureBoxEeg.Image = bmp;
-            }
-        }
 
-        private void PictureBoxEeg_MouseUp(object sender, MouseEventArgs e)
-        {
-            m_currentSelectionMode = 0;
-        }
-        void pictureBoxEeg_MouseDown(object sender, MouseEventArgs e)
-        {
-            m_selectionStartIndex = e.X;
-            if(e.Button == MouseButtons.Left)
-            {
-                m_currentSelectionMode = m_leftClickCounter;
-                m_leftClickCounter++;
-            }
-            else if (e.Button == MouseButtons.Right)
-            {
-                m_currentSelectionMode = m_rightClickCounter;
-                m_rightClickCounter--;
-            }
-
-        }
-
-        private void NumericUpDownGain_ValueChanged(object sender, EventArgs e)
-        {
-            drawEeg();
-        }
-
-
-        void hScrollBarWindow_ValueChanged(object sender, EventArgs e)
-        {
-            m_startTime = hScrollBarWindow.Value;
-            drawEeg();
-        }
-
-        void FormTrace_MouseWheel(object sender, MouseEventArgs e)
-        {
-            int newValue = (int)(hScrollBarWindow.Value + hScrollBarWindow.SmallChange * (double)(e.Delta / 120));
-            newValue = Math.Max(newValue, hScrollBarWindow.Minimum);
-            newValue = Math.Min(newValue, hScrollBarWindow.Maximum);
-            hScrollBarWindow.Value = newValue;
-        }
-
-
-        void FormTrace_Resize(object sender, EventArgs e)
-        {
-            pictureBoxEeg.Width = this.Width - m_picWidthMargin;
-            pictureBoxEeg.Height = this.Height - m_picHeightMargin;
-            drawEeg();
-        }
-
-        void FormTrace_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            saveSettings();
         }
         public void setDefaults()
         {
             m_startTime = 0;
             m_windowDuration = 6;
             m_gain = 1;
+            m_selectionFile = "default.selection";
+        }
+        void saveSelection()
+        {
+            using (FileStream fStream = new FileStream(m_selectionFile, FileMode.Create, FileAccess.Write))
+            {
+                BinaryWriter bWriter = new BinaryWriter(fStream);
+                for (int i = 0; i < m_selections.Length; i++)
+                {
+                    bWriter.Write(m_selections[i]);
+                }
+            }
+        }
+        void loadSelection()
+        {
+            List<int> selections = new List<int>();
+            if (File.Exists(m_selectionFile))
+            {
+                FileInfo fi = new FileInfo(m_selectionFile);
+                using (FileStream fStream = new FileStream(m_selectionFile, FileMode.Open, FileAccess.Read))
+                {
+                    BinaryReader binaryReader = new BinaryReader(fStream);
+                    while (binaryReader.BaseStream.Position < fi.Length)
+                    {
+                        selections.Add(binaryReader.ReadInt32());
+                    }
+                }
+            }
+            m_selections = selections.ToArray();
+            drawOverlay();
+        }
+        void saveSettings()
+        {
+            using (StreamWriter sWriter = new StreamWriter(m_settingsFile))
+            {
+                sWriter.WriteLine(m_lastFile);
+                saveSelection();
+                sWriter.WriteLine(m_selectionFile);
+
+            }
+        }
+        void loadSettings()
+        {
+            if (File.Exists(m_settingsFile))
+            {
+                using (StreamReader sReader = new StreamReader(m_settingsFile))
+                {
+                    m_lastFile = sReader.ReadLine();
+                    if (!sReader.EndOfStream)
+                    {
+                        m_selectionFile = sReader.ReadLine();
+                    }
+                    else
+                    {
+                        m_selectionFile = getDefaultSelectionFilename(m_lastFile);
+                    }
+                    if (File.Exists(m_lastFile))
+                    {
+                        loadData(m_lastFile);
+                    }
+                    if(File.Exists(m_selectionFile))
+                    {
+                        loadSelection();
+                    }
+                }
+            }
+        }
+        void loadData(string filename)
+        {
+            if (filename != null && filename.Length > 1)
+            {
+                if (filename.ToLower().EndsWith(".edf") || filename.ToLower().EndsWith(".bdf"))
+                {
+                    m_file = EDFfile.OpenFile(filename);
+                    int selectorCount = (int)(m_file.m_header.Duration.TotalSeconds * m_file.SamplesPerSecondMax);
+                    m_selections = new int[selectorCount];
+                    m_selectionFile = getDefaultSelectionFilename(filename);
+                    
+                }
+                else
+                {
+                    throw new ArgumentException("unsupported file type");
+                }
+            }
+            hScrollBarWindow.Minimum = 0;
+            hScrollBarWindow.Maximum = (int)(Math.Ceiling(m_file.m_header.Duration.TotalSeconds));
+            drawEeg();
+        }
+        void convertFile(string input, string output)
+        {
+            EDFfile file = EDFfile.OpenFile(input, true);
+            file.convertToRaw(output);
+        }
+        public static string getDefaultSelectionFilename(string eegFilename)
+        {
+            string noExt = eegFilename;
+            if (noExt != null)
+            { 
+                noExt = eegFilename.Substring(0, noExt.LastIndexOf('.'));
+            }
+            return noExt + ".selection";
 
         }
+        #endregion serialization
+
+
+
+        #region display
+
         public void drawEeg()
         {
             if (m_file != null)
@@ -158,7 +298,7 @@ namespace Analysis
                     }
                     m_baseBitmap = bmp;
                     m_overlayBitmap = new Bitmap(m_baseBitmap.Width, m_baseBitmap.Height);
-                    drawOverlay(bmp);
+                    drawOverlay();
 
                     //update display
                     //pictureBoxEeg.Image = bmp;
@@ -169,8 +309,9 @@ namespace Analysis
                 }
             }
         }
-        void drawOverlay(Bitmap bmp)
+        void drawOverlay()
         {
+            Bitmap bmp = m_baseBitmap;
             Graphics g = Graphics.FromImage(m_overlayBitmap);
             //Graphics g = Graphics.FromImage(m_overlayBitmap);
             g.DrawImage(bmp, new Point(0, 0));
@@ -182,21 +323,21 @@ namespace Analysis
             int i = startIndex;
             double maxSampleRate = m_file.SamplesPerSecondMax;
             bool lastSelected = m_selections[i] > 0;
-            if(lastSelected)
+            if (lastSelected)
             {
                 selectionStart = 0;
             }
             i++;
             while (i < endIndex)
-            { 
+            {
                 bool isSelected = m_selections[i] > 0;
-                if(isSelected!=lastSelected)
+                if (isSelected != lastSelected)
                 {
-                    if(lastSelected)
+                    if (lastSelected)
                     {
                         int xStart = (int)(selectionStart * bmp.Width / m_windowDuration / maxSampleRate);
-                        int xEnd = (int)((i- startIndex) * bmp.Width / m_windowDuration / maxSampleRate);
-                        g.FillRectangle(b, new Rectangle(xStart, 0, xEnd-xStart, bmp.Height));
+                        int xEnd = (int)((i - startIndex) * bmp.Width / m_windowDuration / maxSampleRate);
+                        g.FillRectangle(b, new Rectangle(xStart, 0, xEnd - xStart, bmp.Height));
                         //for (int x = xStart; x < xEnd; x++)
                         //{
                         //    for (int y = 0; y < bmp.Height; y++)
@@ -207,7 +348,7 @@ namespace Analysis
                     }
                     else
                     {
-                        selectionStart = i -startIndex;
+                        selectionStart = i - startIndex;
                     }
                     lastSelected = isSelected;
                 }
@@ -215,77 +356,13 @@ namespace Analysis
             }
             pictureBoxEeg.Image = m_overlayBitmap;
         }
-        void saveSettings()
-        {
-            using (StreamWriter sWriter = new StreamWriter(m_settingsFile))
-            {
-                sWriter.WriteLine(m_lastFile);
-            }
-        }
-        void loadSettings()
-        {
-            if (File.Exists(m_settingsFile))
-            {
-                using (StreamReader sReader = new StreamReader(m_settingsFile))
-                {
-                    m_lastFile = sReader.ReadLine();
-                    if (File.Exists(m_lastFile))
-                    {
-                        loadData(m_lastFile);
-                    }
-                }
-            }
-        }
-        void loadData(string filename)
-        {
-            if (filename != null && filename.Length > 1)
-            {
-                if (filename.ToLower().EndsWith(".edf") || filename.ToLower().EndsWith(".bdf"))
-                {
-                    m_file = EDFfile.OpenFile(filename);
-                    int selectorCount = (int)(m_file.m_header.Duration.TotalSeconds * m_file.SamplesPerSecondMax);
-                    m_selections = new int[selectorCount];
-                }
-                else
-                {
-                    throw new ArgumentException("unsupported file type");
-                }
-            }
-            hScrollBarWindow.Minimum = 0;
-            hScrollBarWindow.Maximum = (int)(Math.Ceiling(m_file.m_header.Duration.TotalSeconds));
-            drawEeg();
-        }
-        void convertFile(string input, string output)
-        {
-            EDFfile file = EDFfile.OpenFile(input, true);
-            file.convertToRaw(output);
-        }
 
-        private void openFileToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog fd = new OpenFileDialog();
-            if (fd.ShowDialog() == DialogResult.OK)
-            {
-                loadData(fd.FileName);
-                m_lastFile = fd.FileName;
-            }
-        }
 
-        private void pictureBoxEeg_Click(object sender, EventArgs e)
-        {
+        #endregion display
 
-        }
 
-        private void displayChannelsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            FormChannelSelector form = new FormChannelSelector(this);
-            form.Show();
-        }
 
-        private void FormTrace_Load(object sender, EventArgs e)
-        {
-
-        }
+        #region get/set
 
         public string[] AllChannelLabels
         {
@@ -311,12 +388,43 @@ namespace Analysis
                 return channels.ToArray();
             }
         }
-
-        private void checkBoxAutoGain_CheckedChanged(object sender, EventArgs e)
+        public string EegFilename
         {
-            numericUpDownGain.Enabled = !checkBoxAutoGain.Checked;
-            drawEeg();
+            get
+            {
+                if (m_lastFile != null && m_lastFile.Length > 0)
+                {
+                    return m_lastFile;
+                }
+                else
+                {
+                    return "untitled.edf";
+                }
+            }
         }
-        
+    
+        public string SelectionFilename
+        {
+            get
+            {
+                if (m_selectionFile != null && m_selectionFile.Length > 0)
+                {
+                    return m_selectionFile;
+                }
+                else
+                {
+                    return getDefaultSelectionFilename(EegFilename);
+                }
+            }
+        }
+
+
+
+        #endregion get/set
+
+        private void selectionLabelsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
