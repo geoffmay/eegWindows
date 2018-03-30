@@ -29,7 +29,12 @@ namespace Analysis
             {
                 CheckBox cb = new CheckBox();
                 cb.Text = m_channelLabels[i];
-                cb.Checked = true;
+                bool isChecked = true;
+                if (m_channelLabels.Length == m_parent.ChannelDisplay.Length)
+                {
+                    isChecked = m_parent.ChannelDisplay[i];
+                }
+                cb.Checked = isChecked;
                 cb.SetBounds(x, y, cb.Width, cb.Height);
                 cb.CheckedChanged += Cb_CheckedChanged;
                 this.Controls.Add(cb);
@@ -39,10 +44,9 @@ namespace Analysis
 
         private void Cb_CheckedChanged(object sender, EventArgs e)
         {
-            //todo: left off here.
-            //set parent display value
-            //redraw eeg
-
+            CheckBox cb = sender as CheckBox;
+            
+            m_parent.setSelection(cb.Text, cb.Checked);
         }
     }
 }

@@ -128,8 +128,16 @@ namespace Analysis
         }
         private void displayChannelsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            FormChannelSelector form = new FormChannelSelector(this);
-            form.Show();
+            if (m_file != null)
+            {
+                FormChannelSelector form = new FormChannelSelector(this);
+                form.Show();
+            }
+            else
+            {
+                MessageBox.Show("Load an EEG file first.");
+
+            }
         }
 
         #endregion events
@@ -148,17 +156,14 @@ namespace Analysis
             //component events
             InitializeComponent();
             hScrollBarWindow.ValueChanged += new EventHandler(hScrollBarWindow_ValueChanged);
+            m_picWidthMargin = pictureBoxEeg.Location.X + (this.Width - textBox2.Right);
+            m_picHeightMargin = pictureBoxEeg.Location.Y + (this.Height - textBox1.Location.Y) + 20;
+            pictureBoxEeg.Width = this.Width - m_picWidthMargin;
+            pictureBoxEeg.Height = this.Height - m_picHeightMargin;
             pictureBoxEeg.MouseDown += new MouseEventHandler(pictureBoxEeg_MouseDown);
             pictureBoxEeg.MouseUp += new MouseEventHandler(PictureBoxEeg_MouseUp);
             pictureBoxEeg.MouseMove += PictureBoxEeg_MouseMove;
             numericUpDownGain.ValueChanged += NumericUpDownGain_ValueChanged;
-
-            //pictureBoxEeg.Width = m_picWidth;
-            //pictureBoxEeg.Height = m_picHeight;
-            m_picHeightMargin = 745 - 333;
-            m_picWidthMargin = 1177 - 691;
-            //m_picHeightMargin = 745 - m_picHeight;
-            //m_picWidthMargin = 1177 - m_picWidth;
             setDefaults();
             loadSettings();
         }
@@ -209,7 +214,11 @@ namespace Analysis
                 sWriter.WriteLine(m_lastFile);
                 saveSelection();
                 sWriter.WriteLine(m_selectionFile);
-
+                sWriter.WriteLine(m_displayChannel.Length);
+                for (int i = 0; i < m_displayChannel.Length; i++)
+                {
+                    sWriter.WriteLine(m_displayChannel[i]);
+                }
             }
         }
         void loadSettings()
@@ -218,6 +227,7 @@ namespace Analysis
             {
                 using (StreamReader sReader = new StreamReader(m_settingsFile))
                 {
+                    //get filenames
                     m_lastFile = sReader.ReadLine();
                     if (!sReader.EndOfStream)
                     {
@@ -227,13 +237,32 @@ namespace Analysis
                     {
                         m_selectionFile = getDefaultSelectionFilename(m_lastFile);
                     }
+                    //load data
+                    bool isFileRead = false;
                     if (File.Exists(m_lastFile))
                     {
                         loadData(m_lastFile);
+                        isFileRead = true;
                     }
+                    //load selections
                     if(File.Exists(m_selectionFile))
                     {
                         loadSelection();
+                    }
+                    //channel display settings
+                    if (isFileRead)
+                    {
+                        if (!sReader.EndOfStream)
+                        {
+                            int channelIncludeCount = int.Parse(sReader.ReadLine());
+                            m_displayChannel = new bool[channelIncludeCount];
+                            for (int i = 0; i < channelIncludeCount; i++)
+                            {
+                                string boolVal = sReader.ReadLine();
+                                m_displayChannel[i] = bool.Parse(boolVal);
+                            }
+                            drawEeg();
+                        }
                     }
                 }
             }
@@ -253,6 +282,14 @@ namespace Analysis
                 else
                 {
                     throw new ArgumentException("unsupported file type");
+                }
+            }
+            if (m_displayChannel == null)
+            {
+                m_displayChannel = new bool[m_file.NumberOfChannels()];
+                for (int i = 0; i < m_displayChannel.Length; i++)
+                {
+                    m_displayChannel[i] = true;
                 }
             }
             hScrollBarWindow.Minimum = 0;
@@ -290,11 +327,17 @@ namespace Analysis
                     //draw eeg
                     if (checkBoxAutoGain.Checked)
                     {
-                        m_file.DrawEeg(bmp, true, m_startTime, m_startTime + m_windowDuration);
+                        m_file.DrawEeg(bmp, true, m_startTime, m_startTime + m_windowDuration, 0, m_displayChannel);
+
+                        //GenerateBitmap(int picWidth, int picHeight, bool DrawGrid, double startTime, double endTime, double gain, bool[] display)
+
+
+
+
                     }
                     else
                     {
-                        m_file.DrawEeg(bmp, true, m_startTime, m_startTime + m_windowDuration, (double)numericUpDownGain.Value);
+                        m_file.DrawEeg(bmp, true, m_startTime, m_startTime + m_windowDuration, (double)numericUpDownGain.Value, m_displayChannel);
                     }
                     m_baseBitmap = bmp;
                     m_overlayBitmap = new Bitmap(m_baseBitmap.Width, m_baseBitmap.Height);
@@ -311,50 +354,53 @@ namespace Analysis
         }
         void drawOverlay()
         {
-            Bitmap bmp = m_baseBitmap;
-            Graphics g = Graphics.FromImage(m_overlayBitmap);
-            //Graphics g = Graphics.FromImage(m_overlayBitmap);
-            g.DrawImage(bmp, new Point(0, 0));
-            Brush b = new SolidBrush(Color.FromArgb(128, 0, 10, 128));
-            double samplesPerSecond = m_file.SamplesPerSecondMax;
-            int startIndex = (int)(m_startTime * samplesPerSecond);
-            int endIndex = (int)((m_startTime + m_windowDuration) * samplesPerSecond);
-            int selectionStart = -1;
-            int i = startIndex;
-            double maxSampleRate = m_file.SamplesPerSecondMax;
-            bool lastSelected = m_selections[i] > 0;
-            if (lastSelected)
+            if (m_baseBitmap != null)
             {
-                selectionStart = 0;
-            }
-            i++;
-            while (i < endIndex)
-            {
-                bool isSelected = m_selections[i] > 0;
-                if (isSelected != lastSelected)
+                Bitmap bmp = m_baseBitmap;
+                Graphics g = Graphics.FromImage(m_overlayBitmap);
+                //Graphics g = Graphics.FromImage(m_overlayBitmap);
+                g.DrawImage(bmp, new Point(0, 0));
+                Brush b = new SolidBrush(Color.FromArgb(128, 0, 10, 128));
+                double samplesPerSecond = m_file.SamplesPerSecondMax;
+                int startIndex = (int)(m_startTime * samplesPerSecond);
+                int endIndex = (int)((m_startTime + m_windowDuration) * samplesPerSecond);
+                int selectionStart = -1;
+                int i = startIndex;
+                double maxSampleRate = m_file.SamplesPerSecondMax;
+                bool lastSelected = m_selections[i] > 0;
+                if (lastSelected)
                 {
-                    if (lastSelected)
-                    {
-                        int xStart = (int)(selectionStart * bmp.Width / m_windowDuration / maxSampleRate);
-                        int xEnd = (int)((i - startIndex) * bmp.Width / m_windowDuration / maxSampleRate);
-                        g.FillRectangle(b, new Rectangle(xStart, 0, xEnd - xStart, bmp.Height));
-                        //for (int x = xStart; x < xEnd; x++)
-                        //{
-                        //    for (int y = 0; y < bmp.Height; y++)
-                        //    {
-                        //        bmp.SetPixel(x, y, Color.CornflowerBlue);
-                        //    }
-                        //}
-                    }
-                    else
-                    {
-                        selectionStart = i - startIndex;
-                    }
-                    lastSelected = isSelected;
+                    selectionStart = 0;
                 }
                 i++;
+                while (i < endIndex)
+                {
+                    bool isSelected = m_selections[i] > 0;
+                    if (isSelected != lastSelected)
+                    {
+                        if (lastSelected)
+                        {
+                            int xStart = (int)(selectionStart * bmp.Width / m_windowDuration / maxSampleRate);
+                            int xEnd = (int)((i - startIndex) * bmp.Width / m_windowDuration / maxSampleRate);
+                            g.FillRectangle(b, new Rectangle(xStart, 0, xEnd - xStart, bmp.Height));
+                            //for (int x = xStart; x < xEnd; x++)
+                            //{
+                            //    for (int y = 0; y < bmp.Height; y++)
+                            //    {
+                            //        bmp.SetPixel(x, y, Color.CornflowerBlue);
+                            //    }
+                            //}
+                        }
+                        else
+                        {
+                            selectionStart = i - startIndex;
+                        }
+                        lastSelected = isSelected;
+                    }
+                    i++;
+                }
+                pictureBoxEeg.Image = m_overlayBitmap;
             }
-            pictureBoxEeg.Image = m_overlayBitmap;
         }
 
 
@@ -402,7 +448,6 @@ namespace Analysis
                 }
             }
         }
-    
         public string SelectionFilename
         {
             get
@@ -417,7 +462,39 @@ namespace Analysis
                 }
             }
         }
+        public void setSelection(string channelLabel, bool isSelected)
+        {
+            for (int i = 0; i < m_displayChannel.Length; i++)
+            {
+                string label = m_file.ChannelLabel(i);
+                if (channelLabel.Equals(label))
+                {
+                    m_displayChannel[i] = isSelected;
+                }
+            }
+            drawEeg();
+        }
+        //public bool getSelection(string channelLabel)
+        //{
+        //    for (int i = 0; i < m_displayChannel.Length; i++)
+        //    {
+        //        string label = m_file.ChannelLabel(i);
+        //        if (channelLabel.Equals(label))
+        //        {
+        //            return m_displayChannel[i];
+        //        }
+        //    }
+        //    return false;
+        //}
 
+
+        public bool[] ChannelDisplay
+        {
+            get
+            {
+                return m_displayChannel;
+            }
+        }
 
 
         #endregion get/set
