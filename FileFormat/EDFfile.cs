@@ -21,6 +21,7 @@ namespace Analysis
         private double[] m_sampleRates;
 
         private int[][] m_allSamples;
+        private double[][] m_allPhysicalData;
         private bool m_fullyInMemory = false;
         private double m_memoryStartTime = -1;
         private double m_memoryEndTime = -1;
@@ -31,7 +32,7 @@ namespace Analysis
 
         private bool m_drawModeAntiAlias = false;
         private bool m_drawModeGridVisible = false;
-
+        public double[][] m_displayedData;
 
         #region constructors
         private EDFfile()
@@ -502,6 +503,15 @@ namespace Analysis
             int[] offset, count;
             double endTime = m_header.NumberOfRecords * m_header.RecordDuration;
             m_allSamples = ReadRecord(0.0, endTime, out offset, out count);
+            m_allPhysicalData = new double[m_allSamples.Length][];
+            for (int i = 0; i < m_allSamples.Length; i++)
+            {
+                m_allPhysicalData[i] = new double[m_allSamples[i].Length];
+                for (int j = 0; j < m_allSamples[i].Length; j++)
+                {
+                    m_allPhysicalData[i][j] = convertDigitalToPhysical(m_allSamples[i][j], i);
+                }
+            }
             m_memoryStartTime = 0.0;
             m_memoryEndTime = endTime;
             m_fullyInMemory = true;
@@ -545,18 +555,41 @@ namespace Analysis
         }
         public double[][] ReadData(double startTime, double endTime)
         {
-            int[] offset, count;
-            int[][] digitalData = ReadRecord(startTime, endTime, out offset, out count);
-            double[][] physicalData = new double[digitalData.Length][];
-            for (int i = 0; i < digitalData.Length; i++)
+            if (!m_fullyInMemory)
             {
-                physicalData[i] = new double[digitalData[i].Length];
-                for (int j = 0; j < digitalData[i].Length; j++)
+                int[] offset, count;
+                int[][] digitalData = ReadRecord(startTime, endTime, out offset, out count);
+                double[][] physicalData = new double[digitalData.Length][];
+                for (int i = 0; i < digitalData.Length; i++)
                 {
-                    physicalData[i][j] = convertDigitalToPhysical(digitalData[i][j], i);
+                    physicalData[i] = new double[digitalData[i].Length];
+                    for (int j = 0; j < digitalData[i].Length; j++)
+                    {
+                        //debug
+                        if (i == 19 && j >= 19)
+                        {
+                            int dummy = 1;
+                        }
+                        //end debug
+
+                        physicalData[i][j] = convertDigitalToPhysical(digitalData[i][j], i);
+                    }
                 }
+                return physicalData;
             }
-            return physicalData;
+            else
+            {
+                double[][] retVal = new double[m_header.NumberOfSignals][];
+                for (int i = 0; i < retVal.Length; i++)
+                {
+                    int startFrame = (int)(startTime * m_header.GetSampleRate(i));
+                    int endFrame = (int)(endTime * m_header.GetSampleRate(i));
+                    int bufferLength = endFrame - startFrame;
+                    retVal[i] = new double[bufferLength];
+                    Buffer.BlockCopy(m_allSamples[i], startFrame * sizeof(double), retVal[i], 0, bufferLength * sizeof(double));
+                }
+                return retVal;
+            }
         }
         public int[][] ReadRecord(double startTime, double endTime, out int[] offset, out int[] count)
         {
@@ -1307,86 +1340,20 @@ namespace Analysis
             int channelIndex = 0;
             for (int i = 0; i < samples.Length; i++)
             {
-                //int channelIndex = 0;
-                //int displayedChannelCounter = 0;
-                //while (displayedChannelCounter <= i)
-                //{
-                //    if (display[channelIndex])
-                //    {
-                //        displayedChannelIndices[displayedChannelCounter] = channelIndex;
-                //        displayedChannelCounter++;
-                //    }
-                //    channelIndex++;
-                //}
-                //channelIndex--;
                 if (display[i])
                 {
                     double[] thisChannel = samples[i];
                     double WidthReciprocal = 1.0 / thisChannel.Length;
                     x1 = 0;
-
-                    //draw for each frame of the eeg, even if they have to squish 
-                    //into the width of the bitmap's pixels
-                    //double samplesPerSecond = (double)m_header.SignalSamplesPerRecord(channelIndex) / m_header.RecordDuration;
-                    //double sampleNumberD = startTime * samplesPerSecond;
-                    //if (Math.Floor(sampleNumberD) != sampleNumberD)
-                    //{
-                    //    sampleNumberD = Math.Floor(sampleNumberD) + 1;
-                    //}
-                    //long sampleNumber = (long)sampleNumberD;
-
                     Pen p = new Pen(GetColor(channelIndex));
                     double newGain = gain;
-                    //double heightScalar;
-                    //if (newGain == 0)
-                    //{
-                    //    heightScalar = (double)picToModify.Height
-                    //        // / (maxValues[channelIndex]-minValues[channelIndex])
-                    //        / (double)numberOfDisplayedChannels;
-                    //    newGain = 1;
-                    //}
-                    //else
-                    //{
-                    //heightScalar = (double)picToModify.Height / gain
-                    ///// (m_header.SignalDigitalMax(channelIndex) - m_header.SignalDigitalMin(channelIndex))
-                    /// (double)numberOfDisplayedChannels;
-                    //}
-
                     double channelY = (0.5 + i) * picToModify.Height / (numberOfDisplayedChannels + 1);
                     y1 = (float)channelY;
-                    //double channelY = (0.5 + (double)channelIndex) * picToModify.Height / (numberOfDisplayedChannels + 1);
-                    //double xDenom = 1.0 / (double)(digitalSamples[channelIndex].Length);
-                    //int sampleIncrement = 1;
-                    //if (!m_drawModeAntiAlias)
-                    //{
-                    //    sampleIncrement = (int)(0.5 * (double)m_readFunctionCount[channelIndex] / (double)picToModify.Width);
-                    //    if (sampleIncrement < 1) { sampleIncrement = 1; }
-                    //}
-
-                    //int endIndex = m_readFunctionCount[i] + m_readFunctionOffset[i];
-                    //for (long j = m_readFunctionOffset[channelIndex]; j < digitalSamples[i].Length && j < endIndex; j += sampleIncrement)
                     for (int j = 0; j < samples[i].Length; j++)
                     {
-                        //double sampleTime = sampleNumber / samplesPerSecond;
-                        //double sampleTime = j / samplesPerSecond;
-                        //set the x value for the next segment of the curve
-                        //x2 = (float)((sampleTime - startTime) * WidthReciprocal * picToModify.Width);
                         x2 = (float)(j * WidthReciprocal * picToModify.Width);
-                        //set the y value for the next segment of the 
-                        //if (gain == 0)
-                        //{
-                        //    double temp = (digitalSamples[channelIndex][j] - m_autoGainMidRanges[channelIndex]) * m_autoGainRangeReciprocals[channelIndex];
-                        //    temp *= heightScalar;
-                        //    temp *= newGain;
-                        //    temp += channelY;
-                        //    y2 = (float)temp;
-                        //    //y2 = (float)(((bytes[channelIndex][j] - middle) * heightScalar * newGain + channelY));
-                        //}
-                        //else
-                        //{
                         double demeaned = samples[i][j] - sampleMeans[i];
                         y2 = (float)((demeaned * newGain + channelY));
-                        //}
                         if (y2 > picToModify.Height) { y2 = picToModify.Height - 1; }
                         if (y2 < 0) { y2 = 0; }
                         if (j != 0          //need two points.  there's only one when j==0
@@ -1400,38 +1367,104 @@ namespace Analysis
                         y1 = y2;
                         //sampleNumber++;
                     }
-                    //float fontSize = (float)picToModify.Height / (float)(numberOfDisplayedChannels * 3);
-                    //g.DrawString(m_header.SignalLabel(channelIndex),
-                    //    new Font("Arial", fontSize),
-                    //    new SolidBrush(Color.Black), 10,
-                    //    (float)(channelY));
                     channelIndex++;
                 }
-
+                float fontSize = (float)picToModify.Height / (float)(numberOfDisplayedChannels * 3);
             }
+        }
+
+        public void DrawGridlines(Bitmap picToModify, double startTime, double endTime)
+        {
+            Graphics g = Graphics.FromImage(picToModify);
+            Pen minorPen = new Pen(Color.Pink);
+            Pen majorPen = new Pen(Color.Pink, Math.Max(2.0f, (float)picToModify.Width / 500.0f));
+            //start at a point where the frame is clearly at a second marker
+            double timeCursor = startTime;
+            timeCursor = (Math.Floor(timeCursor * 5.0) + 1.0) / 5.0;
+            double lastTic = endTime;
+            lastTic = (Math.Floor(lastTic * 5.0) + 1.0) / 5.0;
+            Pen drawPen = new Pen(Color.WhiteSmoke);
+            while (timeCursor < lastTic)
+            {
+                //major tic
+                if (Math.Floor(timeCursor) == timeCursor)
+                {
+                    drawPen = majorPen;
+                }
+                //minor tic
+                else
+                {
+                    drawPen = minorPen;
+                }
+                float x = (float)((timeCursor - startTime) / (endTime - startTime) * picToModify.Width);
+                g.DrawLine(drawPen, x, 0, x, picToModify.Height);
+
+                timeCursor += 0.2;
+                timeCursor = (Math.Floor(timeCursor * 5.0 + 0.5)) / 5.0;
+            }
+        }
+
+        public void DrawAnnotations(Bitmap picToModify, double startTime, double endTime, bool[] display)
+        {
+            int numberOfDisplayedChannels = 0;
+            for (int i = 0; i < display.Length; i++)
+            {
+                if (display[i])
+                {
+                    numberOfDisplayedChannels++;
+                }
+            }
+            Graphics g = Graphics.FromImage(picToModify);
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            #region draw annotations
+            //draw annotations
+            int annotationIndex = 0;
+            while (annotationIndex < m_annotationOnsets.Count && m_annotationOnsets[annotationIndex] < endTime)
+            {
+                if (m_annotationOnsets[annotationIndex] >= startTime)
+                {
+                    Pen p = new Pen(Color.Black);
+                    float x;
+                    if (m_annotationDurations[annotationIndex] > 0)
+                    {
+                        x = (float)((m_annotationOnsets[annotationIndex] - startTime) / (endTime - startTime) * picToModify.Width);
+                        float width = (float)((m_annotationDurations[annotationIndex]) / (endTime - startTime) * picToModify.Width);
+                        g.FillRectangle(Brushes.LightBlue, x, 0, width, picToModify.Height);
+                    }
+                    else
+                    {
+                        x = (float)((m_annotationOnsets[annotationIndex] - startTime) / (endTime - startTime) * picToModify.Width);
+                        g.DrawLine(p, x, 0, x, picToModify.Height);
+                    }
+                    float fontHeight = picToModify.Height / (numberOfDisplayedChannels * 3);
+                    g.DrawString(m_annotations[annotationIndex], new Font("Arial", fontHeight),
+                        Brushes.Black, x, picToModify.Height - fontHeight - 10);
+                }
+                annotationIndex++;
+            }
+            #endregion draw annotations
         }
 
         public Bitmap DrawEeg(Bitmap picToModify, bool DrawGrid, double startTime, double endTime, double gain, bool[] display)
         {
-            //debug
-            //debug
             List<long> splits = new List<long>();
             System.Diagnostics.Stopwatch stopWatch = new System.Diagnostics.Stopwatch();
             long linesDrawn = 0;
             stopWatch.Start();
-            //end debug
-            //end debug
-            #region initialization
             int[][] digitalSamples = ReadRecord(startTime, endTime, out m_readFunctionOffset, out m_readFunctionCount);
             double[][] physicalSamples = ReadData(startTime, endTime);
+            m_displayedData = physicalSamples;
+            Graphics g = Graphics.FromImage(picToModify);
+            Brush whiteBrush = Brushes.White;
+            g.FillRectangle(whiteBrush, new Rectangle(0, 0, picToModify.Width, picToModify.Height));
+            if (DrawGrid) { DrawGridlines(picToModify, startTime, endTime); }
             if (gain != 0)
             {
                 EDFfile.DrawSignals(picToModify, physicalSamples, gain, display);
-                return picToModify;
-
             }
             else
             {
+                #region initialization
                 double[] signalMeans = new double[physicalSamples.Length];
                 for (int i = 0; i < signalMeans.Length; i++)
                 {
@@ -1461,9 +1494,9 @@ namespace Analysis
 
 
                 //Bitmap picToModify = new Bitmap(picWidth, picHeight);
-                Graphics g = Graphics.FromImage(picToModify);
-                Brush whiteBrush = Brushes.White;
-                g.FillRectangle(whiteBrush, new Rectangle(0,0,picToModify.Width, picToModify.Height));
+                //Graphics g = Graphics.FromImage(picToModify);
+                //Brush whiteBrush = Brushes.White;
+                //g.FillRectangle(whiteBrush, new Rectangle(0, 0, picToModify.Width, picToModify.Height));
                 if (m_drawModeAntiAlias)
                 {
                     g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
@@ -1474,72 +1507,10 @@ namespace Analysis
                 }
                 #endregion initialization
 
-                #region drawgridlines
-                //draw gridlines
-                if (DrawGrid)
-                {
-                    {
-                        Pen minorPen = new Pen(Color.Pink);
-                        Pen majorPen = new Pen(Color.Pink, Math.Max(2.0f, (float)picToModify.Width / 500.0f));
-                        //start at a point where the frame is clearly at a second marker
-                        double timeCursor = startTime;
-                        timeCursor = (Math.Floor(timeCursor * 5.0) + 1.0) / 5.0;
-                        double lastTic = endTime;
-                        lastTic = (Math.Floor(lastTic * 5.0) + 1.0) / 5.0;
-                        Pen drawPen = new Pen(Color.WhiteSmoke);
-                        while (timeCursor < lastTic)
-                        {
-                            //major tic
-                            if (Math.Floor(timeCursor) == timeCursor)
-                            {
-                                drawPen = majorPen;
-                            }
-                            //minor tic
-                            else
-                            {
-                                drawPen = minorPen;
-                            }
-                            float x = (float)((timeCursor - startTime) / (endTime - startTime) * picToModify.Width);
-                            g.DrawLine(drawPen, x, 0, x, picToModify.Height);
+                if (DrawGrid) { DrawGridlines(picToModify, startTime, endTime); }
 
-                            timeCursor += 0.2;
-                            timeCursor = (Math.Floor(timeCursor * 5.0 + 0.5)) / 5.0;
-                        }
-                    }
-                }
-                #endregion drawgridlines
+                DrawAnnotations(picToModify, startTime, endTime, display);
 
-                #region draw annotations
-                //draw annotations
-                int annotationIndex = 0;
-                while (annotationIndex < m_annotationOnsets.Count && m_annotationOnsets[annotationIndex] < endTime)
-                {
-                    if (m_annotationOnsets[annotationIndex] >= startTime)
-                    {
-                        Pen p = new Pen(Color.Black);
-                        float x;
-                        if (m_annotationDurations[annotationIndex] > 0)
-                        {
-                            x = (float)((m_annotationOnsets[annotationIndex] - startTime) / (endTime - startTime) * picToModify.Width);
-                            float width = (float)((m_annotationDurations[annotationIndex]) / (endTime - startTime) * picToModify.Width);
-                            g.FillRectangle(Brushes.LightBlue, x, 0, width, picToModify.Height);
-                        }
-                        else
-                        {
-                            x = (float)((m_annotationOnsets[annotationIndex] - startTime) / (endTime - startTime) * picToModify.Width);
-                            g.DrawLine(p, x, 0, x, picToModify.Height);
-                        }
-                        float fontHeight = picToModify.Height / (numberOfDisplayedChannels * 3);
-                        g.DrawString(m_annotations[annotationIndex], new Font("Arial", fontHeight),
-                            Brushes.Black, x, picToModify.Height - fontHeight - 10);
-                    }
-                    annotationIndex++;
-                }
-                #endregion draw annotations
-
-                //debug
-                splits.Add(stopWatch.ElapsedMilliseconds);
-                //end debug
 
                 #region draw signals
 
@@ -1647,10 +1618,16 @@ namespace Analysis
                         sampleNumber++;
                     }
                     float fontSize = (float)picToModify.Height / (float)(numberOfDisplayedChannels * 3);
-                    g.DrawString(m_header.SignalLabel(channelIndex),
-                        new Font("Arial", fontSize),
-                        new SolidBrush(Color.Black), 10,
-                        (float)(channelY));
+                    //g.DrawString(m_header.SignalLabel(channelIndex),
+                    //    new Font("Arial", fontSize),
+                    //    new SolidBrush(Color.Black), 10,
+                    ////    (float)(channelY));
+                    //g.DrawString(m_header.SignalLabel(channelIndex),
+                    //    new Font("Arial", fontSize),
+                    //    new SolidBrush(GetColor(channelIndex)), 10,
+                    //    (float)(channelY));
+
+
                 }
                 #endregion draw signals
                 //debug
@@ -1665,8 +1642,58 @@ namespace Analysis
                     double linesPerMillisecond = linesDrawn / milliSeconds;
                 }
                 //end debug
-                return picToModify;
+                //return picToModify;
             }
+            DrawAnnotations(picToModify, startTime, endTime, display);
+            DrawChannelLabels(picToModify, display);
+            return picToModify;
+
+        }
+        public void DrawChannelLabels(Bitmap picToModify, bool[] display)
+        {
+            int numberOfDisplayedChannels = 0;
+            for (int i = 0; i < display.Length; i++)
+            {
+                if (display[i])
+                {
+                    numberOfDisplayedChannels++;
+                }
+            }
+            Graphics g = Graphics.FromImage(picToModify);
+            if (m_drawModeAntiAlias)
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            }
+            else
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
+            }
+            int[] displayedChannelIndices = new int[numberOfDisplayedChannels];
+            for (int i = 0; i < numberOfDisplayedChannels; i++)
+            {
+                int channelIndex = 0;
+                int displayedChannelCounter = 0;
+                while (displayedChannelCounter <= i)
+                {
+                    if (display[channelIndex])
+                    {
+                        displayedChannelIndices[displayedChannelCounter] = channelIndex;
+                        displayedChannelCounter++;
+                    }
+                    channelIndex++;
+                }
+                channelIndex--;
+                double channelY = (0.5 + i) * picToModify.Height / (numberOfDisplayedChannels + 1);
+                float fontSize = (float)picToModify.Height / (float)(numberOfDisplayedChannels * 3);
+                g.DrawString(m_header.SignalLabel(channelIndex),
+                    new Font("Arial", fontSize),
+                    new SolidBrush(GetColor(channelIndex)), 10,
+                    (float)(channelY));
+            }
+        }
+        public double getDisplayedData(int channelIndex, int frame)
+        {
+            return m_displayedData[channelIndex][frame];
         }
         protected static Color GetColor(int i)
         {

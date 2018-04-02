@@ -128,7 +128,7 @@ namespace Analysis
         #endregion derived
         #endregion //fields
         public enum SampleStyle { Continuous, Discontinuous, Biosemi24Bit, Unspecified };
-        
+
         private SampleStyle m_sampleStyle;
         public SampleStyle sampleStyle
         {
@@ -403,7 +403,7 @@ namespace Analysis
                 m_patient_info = PatientInfo;
             }
         }
-        
+
         public string PtInfoName
         {
             get { return m_PI_name; }
@@ -419,20 +419,20 @@ namespace Analysis
             set { m_recording_info = value; }
         }
         public DateTime RecInfoStartDate
-        { 
+        {
             get { return m_RI_startDate; }
             set
             {
                 m_RI_startDate = value;
                 m_recording_info = RecordingInfo;
                 m_record_start_date =
-                    string.Format("{0:00}",value.Day) + "." +
-                    string.Format("{0:00}",value.Month) + "." +
-                    string.Format("{0:00}",value.Year%100);
+                    string.Format("{0:00}", value.Day) + "." +
+                    string.Format("{0:00}", value.Month) + "." +
+                    string.Format("{0:00}", value.Year % 100);
                 m_record_start_time =
-                    string.Format("{0:00}",value.Hour) + "." +
-                    string.Format("{0:00}",value.Minute) + "." +
-                    string.Format("{0:00}",value.Second);
+                    string.Format("{0:00}", value.Hour) + "." +
+                    string.Format("{0:00}", value.Minute) + "." +
+                    string.Format("{0:00}", value.Second);
             }
         }
         public string RecInfoHospitalEEGNumber
@@ -516,9 +516,9 @@ namespace Analysis
         #endregion set
         #region get
         public void GetSignalParameters(int index,
-            out string label, 
-            out string transducerType, 
-            out string dimenstionUnit, 
+            out string label,
+            out string transducerType,
+            out string dimenstionUnit,
             out double physicalMinimum,
             out double physicalMaximum,
             out double digitalMinimum,
@@ -537,6 +537,14 @@ namespace Analysis
             reserved = m_signal_reserved[index];
             samplesPerRecord = m_signal_samples_per_record[index];
             transducerType = m_signal_transducer_types[index];
+        }
+        public double GetSampleRate(int index)
+        {
+            return m_signal_samples_per_record[index] * m_record_duration;
+        }
+        public string GetChannelUnits(int index)
+        {
+            return m_signal_dimension_units[index];
         }
         public bool IsSignalAnnotation(int index)
         {
@@ -576,6 +584,13 @@ namespace Analysis
         public string SignalLabel(int index)
         {
             return m_signal_labels[index];
+        }
+        public string[] SignalLabels
+        {
+            get
+            {
+                return m_signal_labels;
+            }
         }
         public double SignalDigitalMax(int index)
         {

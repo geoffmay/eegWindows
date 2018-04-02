@@ -24,7 +24,7 @@ namespace Analysis
         {
             m_channelLabels = m_parent.AllChannelLabels;
             int x = 5;
-            int y = 5;
+            int y = buttonAll.Bottom + 5;
             for (int i = 0; i < m_channelLabels.Length; i++)
             {
                 CheckBox cb = new CheckBox();
@@ -47,6 +47,30 @@ namespace Analysis
             CheckBox cb = sender as CheckBox;
             
             m_parent.setSelection(cb.Text, cb.Checked);
+        }
+
+        private void buttonAll_Click(object sender, EventArgs e)
+        {
+            for (int i = 0; i < this.Controls.Count; i++)
+            {
+                if(Controls[i] is CheckBox)
+                {
+                    CheckBox cb = Controls[i] as CheckBox;
+                    cb.Checked = true;
+                }
+            }
+        }
+
+        private void buttonNone_Click(object sender, EventArgs e)
+        {
+            for (int i = 0; i < this.Controls.Count; i++)
+            {
+                if (Controls[i] is CheckBox)
+                {
+                    CheckBox cb = Controls[i] as CheckBox;
+                    cb.Checked = false;
+                }
+            }
         }
     }
 }

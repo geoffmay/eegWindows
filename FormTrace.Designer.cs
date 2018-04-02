@@ -33,14 +33,17 @@ namespace Analysis
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.displayChannelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.selectionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.selectionLabelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.analysisToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.fourierAttributesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.numericUpDownGain = new System.Windows.Forms.NumericUpDown();
             this.label1 = new System.Windows.Forms.Label();
             this.checkBoxAutoGain = new System.Windows.Forms.CheckBox();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
-            this.selectionLabelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.fourierAttributesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.labelStatus = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxEeg)).BeginInit();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownGain)).BeginInit();
@@ -68,7 +71,9 @@ namespace Analysis
             // 
             this.menuStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.fileToolStripMenuItem});
+            this.fileToolStripMenuItem,
+            this.selectionToolStripMenuItem,
+            this.analysisToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Padding = new System.Windows.Forms.Padding(9, 3, 0, 3);
@@ -79,10 +84,7 @@ namespace Analysis
             // fileToolStripMenuItem
             // 
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.openFileToolStripMenuItem,
-            this.displayChannelsToolStripMenuItem,
-            this.selectionLabelsToolStripMenuItem,
-            this.fourierAttributesToolStripMenuItem});
+            this.openFileToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             this.fileToolStripMenuItem.Size = new System.Drawing.Size(50, 29);
             this.fileToolStripMenuItem.Text = "File";
@@ -90,16 +92,46 @@ namespace Analysis
             // openFileToolStripMenuItem
             // 
             this.openFileToolStripMenuItem.Name = "openFileToolStripMenuItem";
-            this.openFileToolStripMenuItem.Size = new System.Drawing.Size(253, 30);
+            this.openFileToolStripMenuItem.Size = new System.Drawing.Size(172, 30);
             this.openFileToolStripMenuItem.Text = "Open File";
             this.openFileToolStripMenuItem.Click += new System.EventHandler(this.openFileToolStripMenuItem_Click);
             // 
-            // displayChannelsToolStripMenuItem
+            // selectionToolStripMenuItem
             // 
-            this.displayChannelsToolStripMenuItem.Name = "displayChannelsToolStripMenuItem";
-            this.displayChannelsToolStripMenuItem.Size = new System.Drawing.Size(253, 30);
-            this.displayChannelsToolStripMenuItem.Text = "Display Channels";
-            this.displayChannelsToolStripMenuItem.Click += new System.EventHandler(this.displayChannelsToolStripMenuItem_Click);
+            this.selectionToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripMenuItem1,
+            this.selectionLabelsToolStripMenuItem});
+            this.selectionToolStripMenuItem.Name = "selectionToolStripMenuItem";
+            this.selectionToolStripMenuItem.Size = new System.Drawing.Size(95, 29);
+            this.selectionToolStripMenuItem.Text = "Selection";
+            // 
+            // toolStripMenuItem1
+            // 
+            this.toolStripMenuItem1.Name = "toolStripMenuItem1";
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(231, 30);
+            this.toolStripMenuItem1.Text = "Display Channels";
+            this.toolStripMenuItem1.Click += new System.EventHandler(this.displayChannelsToolStripMenuItem_Click);
+            // 
+            // selectionLabelsToolStripMenuItem
+            // 
+            this.selectionLabelsToolStripMenuItem.Name = "selectionLabelsToolStripMenuItem";
+            this.selectionLabelsToolStripMenuItem.Size = new System.Drawing.Size(231, 30);
+            this.selectionLabelsToolStripMenuItem.Text = "Selection Labels";
+            // 
+            // analysisToolStripMenuItem
+            // 
+            this.analysisToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.fourierAttributesToolStripMenuItem});
+            this.analysisToolStripMenuItem.Name = "analysisToolStripMenuItem";
+            this.analysisToolStripMenuItem.Size = new System.Drawing.Size(88, 29);
+            this.analysisToolStripMenuItem.Text = "Analysis";
+            // 
+            // fourierAttributesToolStripMenuItem
+            // 
+            this.fourierAttributesToolStripMenuItem.Name = "fourierAttributesToolStripMenuItem";
+            this.fourierAttributesToolStripMenuItem.Size = new System.Drawing.Size(253, 30);
+            this.fourierAttributesToolStripMenuItem.Text = "Fourier Attributes";
+            this.fourierAttributesToolStripMenuItem.Click += new System.EventHandler(this.fourierAttributesToolStripMenuItem_Click);
             // 
             // numericUpDownGain
             // 
@@ -157,24 +189,22 @@ namespace Analysis
             this.textBox2.Size = new System.Drawing.Size(148, 26);
             this.textBox2.TabIndex = 7;
             // 
-            // selectionLabelsToolStripMenuItem
+            // labelStatus
             // 
-            this.selectionLabelsToolStripMenuItem.Name = "selectionLabelsToolStripMenuItem";
-            this.selectionLabelsToolStripMenuItem.Size = new System.Drawing.Size(253, 30);
-            this.selectionLabelsToolStripMenuItem.Text = "Selection Labels";
-            this.selectionLabelsToolStripMenuItem.Click += new System.EventHandler(this.selectionLabelsToolStripMenuItem_Click);
-            // 
-            // fourierAttributesToolStripMenuItem
-            // 
-            this.fourierAttributesToolStripMenuItem.Name = "fourierAttributesToolStripMenuItem";
-            this.fourierAttributesToolStripMenuItem.Size = new System.Drawing.Size(253, 30);
-            this.fourierAttributesToolStripMenuItem.Text = "Fourier Attributes";
+            this.labelStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.labelStatus.AutoSize = true;
+            this.labelStatus.Location = new System.Drawing.Point(256, 611);
+            this.labelStatus.Name = "labelStatus";
+            this.labelStatus.Size = new System.Drawing.Size(61, 20);
+            this.labelStatus.TabIndex = 8;
+            this.labelStatus.Text = "[status]";
             // 
             // FormTrace
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1155, 689);
+            this.Controls.Add(this.labelStatus);
             this.Controls.Add(this.textBox2);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.checkBoxAutoGain);
@@ -206,11 +236,14 @@ namespace Analysis
         private System.Windows.Forms.ToolStripMenuItem openFileToolStripMenuItem;
         private System.Windows.Forms.NumericUpDown numericUpDownGain;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.ToolStripMenuItem displayChannelsToolStripMenuItem;
         private System.Windows.Forms.CheckBox checkBoxAutoGain;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.Label labelStatus;
+        private System.Windows.Forms.ToolStripMenuItem selectionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem selectionLabelsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem analysisToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem fourierAttributesToolStripMenuItem;
     }
 }

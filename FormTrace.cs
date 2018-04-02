@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
+using System.Threading;
 
 namespace Analysis
 {
@@ -15,6 +16,7 @@ namespace Analysis
         string m_settingsFile = "settings.txt";
         string m_selectionFile;
         EDFfile m_file;
+        double[][] m_rawData;
         double m_startTime;
         double m_sampleRate;
         double m_windowDuration;
@@ -30,6 +32,8 @@ namespace Analysis
         int[] m_selections;
         bool[] m_displayChannel;
         string m_lastFile = "";
+        double[][] m_data;
+        Thread m_workerThread;
 
         #endregion fields
 
@@ -39,15 +43,15 @@ namespace Analysis
 
         private void PictureBoxEeg_MouseMove(object sender, MouseEventArgs e)
         {
+            double sampleRate = m_file.SamplesPerSecondMax;
+            double pixelToFrame = (double)sampleRate * m_windowDuration / (double)pictureBoxEeg.Width;
+            double windowStartFrame = m_startTime * sampleRate;
             if (m_currentSelectionMode != 0)
             {
                 double startPixel = Math.Min(e.X, m_selectionStartIndex);
                 double endPixel = Math.Max(e.X, m_selectionStartIndex);
-                double sampleRate = m_file.SamplesPerSecondMax;
-                double pixelToFrame = (double)sampleRate * m_windowDuration / (double)pictureBoxEeg.Width;
                 double startFrameOffset = startPixel * pixelToFrame;
                 double endFrameOffset = endPixel * pixelToFrame;
-                double windowStartFrame = m_startTime * sampleRate;
                 int startTime = (int)(windowStartFrame + startFrameOffset);
                 int endTime = (int)(windowStartFrame + endFrameOffset);
                 startTime = Math.Max(startTime, 0);
@@ -61,10 +65,43 @@ namespace Analysis
                         m_selections[i] = m_currentSelectionMode;
                     }
                 }
-                //Bitmap bmp = m_baseBitmap;
                 drawOverlay();
-                //pictureBoxEeg.Image = bmp;
             }
+
+            double xFrameOffset = e.X * pixelToFrame; 
+            int xFrame = (int)(windowStartFrame + xFrameOffset);
+            int numberOfDisplayedChannels = 0;
+            for (int i = 0; i < m_displayChannel.Length; i++)
+            {
+                if(m_displayChannel[i])
+                {
+                    numberOfDisplayedChannels++;
+                }
+            }
+            int selectedChannel = (int)(Math.Floor((double)(e.Y) / (double)(pictureBoxEeg.Height) * (double)numberOfDisplayedChannels));
+            int channelCounter = -1;
+            string channelLabel = "";
+            int channelIndex = -1;
+            for (int i = 0; i < m_displayChannel.Length; i++)
+            {
+                if (m_displayChannel[i])
+                {
+                    channelCounter++;
+                    if(channelCounter == selectedChannel)
+                    {
+                        channelLabel = m_file.m_header.SignalLabel(i);
+                        channelLabel = channelLabel.Replace(" ", "");
+                        channelIndex = i;
+                    }
+                }
+            }
+            if(channelIndex >= 0 && channelIndex <= m_file.m_displayedData.Length)
+            {
+                double time = xFrame * m_file.m_header.GetSampleRate(channelIndex);
+                string voltage = string.Format("{0:0.00}", m_file.getDisplayedData(channelIndex, (int)xFrameOffset)) + " " + m_file.m_header.GetChannelUnits(channelIndex);
+                labelStatus.Text = channelLabel + " " + voltage;
+            }
+            int dummy = 1;
         }
         private void PictureBoxEeg_MouseUp(object sender, MouseEventArgs e)
         {
@@ -126,6 +163,7 @@ namespace Analysis
             numericUpDownGain.Enabled = !checkBoxAutoGain.Checked;
             drawEeg();
         }
+        
         private void displayChannelsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (m_file != null)
@@ -139,7 +177,10 @@ namespace Analysis
 
             }
         }
+        private void fourierAttributesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
 
+        }
         #endregion events
 
 
@@ -277,7 +318,8 @@ namespace Analysis
                     int selectorCount = (int)(m_file.m_header.Duration.TotalSeconds * m_file.SamplesPerSecondMax);
                     m_selections = new int[selectorCount];
                     m_selectionFile = getDefaultSelectionFilename(filename);
-                    
+                    string outputFile = filename.Substring(0, filename.Length-3) + "raw";
+                    convertInBackground(filename, outputFile);
                 }
                 else
                 {
@@ -296,7 +338,22 @@ namespace Analysis
             hScrollBarWindow.Maximum = (int)(Math.Ceiling(m_file.m_header.Duration.TotalSeconds));
             drawEeg();
         }
-        void convertFile(string input, string output)
+        public void convertInBackground(string input, string output)
+        {
+            List<string> filenames = new List<string>();
+            filenames.Add(input);
+            filenames.Add(output);
+
+            ParameterizedThreadStart start = new ParameterizedThreadStart(convertFileList);
+            m_workerThread = new Thread(start);
+            m_workerThread.Start(filenames);
+        }
+        private static void convertFileList(object filenames)
+        {
+            List<string> fn = filenames as List<string>;
+            convertFile(fn[0], fn[1]);
+        }
+        public static void convertFile(string input, string output)
         {
             EDFfile file = EDFfile.OpenFile(input, true);
             file.convertToRaw(output);
@@ -474,19 +531,6 @@ namespace Analysis
             }
             drawEeg();
         }
-        //public bool getSelection(string channelLabel)
-        //{
-        //    for (int i = 0; i < m_displayChannel.Length; i++)
-        //    {
-        //        string label = m_file.ChannelLabel(i);
-        //        if (channelLabel.Equals(label))
-        //        {
-        //            return m_displayChannel[i];
-        //        }
-        //    }
-        //    return false;
-        //}
-
 
         public bool[] ChannelDisplay
         {
@@ -497,11 +541,12 @@ namespace Analysis
         }
 
 
+
+
+
+
         #endregion get/set
 
-        private void selectionLabelsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-
-        }
+        
     }
 }

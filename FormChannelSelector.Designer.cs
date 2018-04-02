@@ -28,14 +28,39 @@ namespace Analysis
         /// </summary>
         private void InitializeComponent()
         {
+            this.buttonAll = new System.Windows.Forms.Button();
+            this.buttonNone = new System.Windows.Forms.Button();
             this.SuspendLayout();
+            // 
+            // buttonAll
+            // 
+            this.buttonAll.Location = new System.Drawing.Point(12, 12);
+            this.buttonAll.Name = "buttonAll";
+            this.buttonAll.Size = new System.Drawing.Size(75, 35);
+            this.buttonAll.TabIndex = 0;
+            this.buttonAll.Text = "All";
+            this.buttonAll.UseVisualStyleBackColor = true;
+            this.buttonAll.Click += new System.EventHandler(this.buttonAll_Click);
+            // 
+            // buttonNone
+            // 
+            this.buttonNone.Location = new System.Drawing.Point(93, 12);
+            this.buttonNone.Name = "buttonNone";
+            this.buttonNone.Size = new System.Drawing.Size(75, 35);
+            this.buttonNone.TabIndex = 1;
+            this.buttonNone.Text = "None";
+            this.buttonNone.UseVisualStyleBackColor = true;
+            this.buttonNone.Click += new System.EventHandler(this.buttonNone_Click);
             // 
             // FormChannelSelector
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoScroll = true;
-            this.ClientSize = new System.Drawing.Size(186, 410);
+            this.ClientSize = new System.Drawing.Size(279, 631);
+            this.Controls.Add(this.buttonNone);
+            this.Controls.Add(this.buttonAll);
+            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.Name = "FormChannelSelector";
             this.Text = "Channel Selector";
             this.Load += new System.EventHandler(this.FormChannelSelector_Load);
@@ -45,5 +70,7 @@ namespace Analysis
 
         #endregion
 
+        private System.Windows.Forms.Button buttonAll;
+        private System.Windows.Forms.Button buttonNone;
     }
 }
