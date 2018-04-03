@@ -498,6 +498,97 @@ namespace Analysis
             }
             return retVal;
         }
+        public void LoadRecords(string fileName)
+        {
+            if (!File.Exists(fileName))
+            {
+                throw new ArgumentException("EDF file " + fileName + " doesn't exist.");
+            }
+            //EDFfile retVal = new EDFfile();
+            m_fileName = fileName;
+            using (FileStream fs = new FileStream(fileName, FileMode.Open, FileAccess.Read))
+            {
+                m_header.Parse(fs);
+                if (m_header.Reserved.StartsWith("24BIT"))
+                {
+                    bytesPerSample = 3;
+                }
+                else
+                {
+                    bytesPerSample = 2;
+                }
+                m_sampleRates = new double[m_header.NumberOfSignals];
+                m_readFunctionCount = new int[m_header.NumberOfSignals];
+                m_readFunctionOffset = new int[m_header.NumberOfSignals];
+                m_autoGainRangeReciprocals = new double[m_header.NumberOfSignals];
+                m_autoGainMidRanges = new double[m_header.NumberOfSignals];
+                for (int i = 0; i < m_header.NumberOfSignals; i++)
+                {
+                    m_sampleRates[i] = m_header.RecordDuration * m_header.SignalSamplesPerRecord(i);
+                    m_autoGainMidRanges[i] = 0.0;
+                    m_autoGainRangeReciprocals[i] = 1.0;
+                }
+
+                List<int> annotationSignals = new List<int>();
+                try
+                {
+                    //analyze every annotation signal
+                    for (int signalNumber = 0; signalNumber < m_header.NumberOfSignals; signalNumber++)
+                    {
+                        if (m_header.IsSignalAnnotation(signalNumber))
+                        {
+                            annotationSignals.Add(signalNumber);
+                        }
+                    }
+                    for (int signalIndex = 0; signalIndex < annotationSignals.Count; signalIndex++)
+                    {
+                        int signalNumber = annotationSignals[signalIndex];
+                        double lastRecordStartTime = 0;
+                        for (int i = 0; i < m_header.NumberOfRecords; i++)
+                        {
+                            byte[] record = ReadSingleChannelSingleRecordFromDisk(i, signalNumber);
+                            //find annotations
+                            double recordStartTime = ParseAnnotations(record);
+                            //find contiguous segments
+                            if (signalIndex == 0)
+                            {
+                                //add the first record
+                                if (i == 0)
+                                {
+                                    m_continuousRecordStartIndices.Add(i);
+                                    m_continuousRecordStartTimes.Add(recordStartTime);
+                                }
+                                else
+                                {
+                                    double difference = recordStartTime - lastRecordStartTime - m_header.RecordDuration;
+                                    if (difference > 0.01)
+                                    {
+                                        m_continuousRecordStartIndices.Add(i);
+                                        m_continuousRecordStartTimes.Add(recordStartTime);
+                                    }
+                                }
+                                lastRecordStartTime = recordStartTime;
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    //todo: log error
+                }
+            }
+            if (openFully)
+            {
+                //int[] offset, count;
+                //double endTime = retVal.m_header.NumberOfRecords * retVal.m_header.RecordDuration;
+                //retVal.m_allSamples = retVal.ReadRecord(0.0, endTime, out offset, out count);
+                //retVal.m_memoryStartTime = 0.0;
+                //retVal.m_memoryEndTime = endTime;
+                //retVal.m_fullyInMemory = true;
+                retVal.readAllRecords();
+            }
+            return retVal;
+        }
         private void readAllRecords()
         {
             int[] offset, count;
